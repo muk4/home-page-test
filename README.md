@@ -20,6 +20,21 @@ Adres strony (canonical, Open Graph, JSON-LD) ustawia `VITE_SITE_URL` w `.env`
 (domyślnie `https://kansy.dev`). Build używa ścieżek względnych (`base: './'`),
 więc działa też z podkatalogu, np. na GitHub Pages.
 
+## Publikacja (GitHub Pages)
+
+Workflow `.github/workflows/deploy.yml` buduje stronę i publikuje ją na GitHub Pages po każdym
+pushu na domyślną gałąź (można go też uruchomić ręcznie w zakładce Actions).
+
+Jednorazowo w ustawieniach repozytorium:
+1. **Settings → General → Danger Zone → Change visibility → Public** (Pages dla prywatnych repo
+   wymaga płatnego planu),
+2. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+Strona działa wtedy pod `https://muk4.github.io/home-page-test/`. Adres używany w canonical, Open Graph
+i hreflang to zmienna repozytorium `SITE_URL` (Settings → Secrets and variables → Actions → Variables);
+bez niej workflow używa adresu github.io. Przejście na własną domenę: rekordy DNS u rejestratora,
+domena w Settings → Pages → Custom domain i `SITE_URL=https://kansy.dev`.
+
 ## Stack
 
 - Vite + TypeScript (vanilla, bez frameworka UI)
