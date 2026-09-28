@@ -12,7 +12,15 @@ const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
 /** With reduced motion the factory barely moves (and the train stays home). */
 const REDUCED_TIME_SCALE = 0.15;
 
+/** The skills line types itself in; CSS needs its length in characters. */
+function measureRole() {
+  const text = document.querySelector('.role__text');
+  const role = text?.parentElement;
+  if (text && role) role.style.setProperty('--chars', String([...(text.textContent ?? '').trim()].length));
+}
+
 async function boot() {
+  measureRole();
   const host = document.getElementById('factory')!;
   const intro = document.querySelector<HTMLElement>('.intro')!;
   const station = document.getElementById('station')!;
@@ -46,7 +54,7 @@ async function boot() {
 
   const hooks: FactoryHooks = {
     hover(machine, x, y) {
-      if (machine) tooltip.show(machine.label, machine.on, x, y);
+      if (machine) tooltip.show(machine.on, x, y);
       else tooltip.hide();
     },
     move(x, y) {
@@ -54,8 +62,8 @@ async function boot() {
     },
     toggled(machine, touch) {
       const p = factory!.toScreen(machine.center.x, machine.center.y);
-      if (touch) tooltip.flash(machine.label, machine.on, p.x, p.y);
-      else tooltip.show(machine.label, machine.on, p.x, p.y);
+      if (touch) tooltip.flash(machine.on, p.x, p.y);
+      else tooltip.show(machine.on, p.x, p.y);
     },
   };
 

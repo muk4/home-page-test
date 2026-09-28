@@ -1,4 +1,4 @@
-/** Small Factorio-like tooltip that follows the pointer. */
+/** Small Factorio-like tooltip next to the pointer: just what a click will do. */
 export class Tooltip {
   private readonly el: HTMLElement;
   private hideTimer = 0;
@@ -7,26 +7,16 @@ export class Tooltip {
     this.el = el;
   }
 
-  show(label: string, on: boolean, x: number, y: number, touch = false) {
+  show(on: boolean, x: number, y: number, touch = false) {
     window.clearTimeout(this.hideTimer);
-    this.el.innerHTML = '';
-    const name = document.createElement('span');
-    name.className = 'tooltip__name';
-    name.textContent = label;
-    const state = document.createElement('span');
-    state.className = on ? 'tooltip__state' : 'tooltip__state is-off';
-    state.textContent = on ? 'WŁ' : 'WYŁ';
-    const help = document.createElement('span');
-    help.className = 'tooltip__help';
-    help.textContent = `${touch ? 'dotknij' : 'kliknij'}, żeby ${on ? 'wyłączyć' : 'włączyć'}`;
-    this.el.append(name, ' – ', state, help);
+    this.el.textContent = `${touch ? 'dotknij' : 'kliknij'}, żeby ${on ? 'wyłączyć' : 'włączyć'}`;
     this.el.classList.add('is-visible');
     this.move(x, y);
   }
 
   /** Show for a moment (touch has no hover). */
-  flash(label: string, on: boolean, x: number, y: number) {
-    this.show(label, on, x, y, true);
+  flash(on: boolean, x: number, y: number) {
+    this.show(on, x, y, true);
     this.hideTimer = window.setTimeout(() => this.hide(), 1600);
   }
 

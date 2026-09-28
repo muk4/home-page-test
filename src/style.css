@@ -94,7 +94,7 @@ body {
 .intro {
   position: relative;
   isolation: isolate;
-  max-width: 46rem;
+  max-width: min(46rem, 100%);
   text-align: center;
 }
 
@@ -114,7 +114,7 @@ body {
 }
 
 h1 {
-  margin: 0 0 0.9rem;
+  margin: 0 0 0.55rem;
   font-family: 'Space Grotesk', 'JetBrains Mono', system-ui, sans-serif;
   font-weight: 700;
   font-size: clamp(1.75rem, min(1rem + 2.9vw, 1rem + 3.3vh), 3.4rem);
@@ -123,11 +123,81 @@ h1 {
   text-wrap: balance;
 }
 
-.intro p {
+/*
+ * Skills as a terminal prompt: "> text█". The row has a fixed width, so the
+ * text typing itself in (after load) moves nothing and never resizes .intro.
+ * --chars is set from the text length in main.ts.
+ */
+.role {
+  --chars: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.6ch;
+  width: min(100%, calc((var(--chars) + 4) * 1ch));
+  margin: 0 auto 1rem;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 500;
+  /* Shrinks on narrow screens so prompt + text + cursor always fit in one line
+     (monospace glyphs are about 0.64em wide). */
+  font-size: min(
+    clamp(0.76rem, min(0.68rem + 0.45vw, 0.6rem + 0.75vh), 1.05rem),
+    calc((100vw - 2.25rem) / (var(--chars) + 4) / 0.65)
+  );
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  /* A wider fallback font must not push the text block past the screen. */
+  overflow: hidden;
+}
+
+.role__prompt {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.role__text {
+  flex: none;
+  overflow: hidden;
+}
+
+/* Block cursor. */
+.role::after {
+  content: '';
+  flex: none;
+  width: 0.6em;
+  height: 1.1em;
+  background: var(--accent);
+  animation: caret-blink 1.05s steps(1) infinite;
+}
+
+/* Typed in once the page is ready; without JS the text is simply there. */
+.js .role__text {
+  width: 0;
+}
+
+.js.is-ready .role__text {
+  animation: role-type 1.2s steps(var(--chars), end) 0.3s forwards;
+}
+
+@keyframes role-type {
+  to {
+    /* A hair wider than the text, so sub-pixel rounding never clips the last letter. */
+    width: calc(var(--chars) * 1ch + 0.25ch);
+  }
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.intro__text {
   margin: 0 auto;
-  max-width: 39rem;
-  font-size: clamp(0.84rem, min(0.76rem + 0.32vw, 0.7rem + 0.5vh), 1.02rem);
-  line-height: 1.7;
+  max-width: 38rem;
+  font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: clamp(0.92rem, min(0.84rem + 0.35vw, 0.78rem + 0.55vh), 1.12rem);
+  line-height: 1.6;
   color: rgba(255, 255, 255, 0.86);
   text-wrap: pretty;
 }
@@ -473,41 +543,17 @@ h1 {
   opacity: 0;
 }
 
-/* ---------- hint & tooltip ---------- */
-
-.hint {
-  position: fixed;
-  left: max(1rem, env(safe-area-inset-left));
-  bottom: max(0.8rem, env(safe-area-inset-bottom));
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0.3rem 0.55rem;
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.55);
-  background: rgba(10, 10, 10, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  pointer-events: none;
-}
-
-.hint__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 6px var(--accent);
-}
+/* ---------- tooltip ---------- */
 
 .tooltip {
   position: fixed;
   left: 0;
   top: 0;
   z-index: 10;
-  padding: 0.35rem 0.6rem;
-  font-size: 0.75rem;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.72rem;
   white-space: nowrap;
-  color: var(--fg);
+  color: rgba(255, 255, 255, 0.9);
   background: rgba(24, 24, 24, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.28);
   box-shadow:
@@ -522,26 +568,6 @@ h1 {
   opacity: 1;
 }
 
-.tooltip__name {
-  font-weight: 600;
-}
-
-.tooltip__state {
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.tooltip__state.is-off {
-  color: var(--off);
-}
-
-.tooltip__help {
-  display: block;
-  margin-top: 0.15rem;
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.5);
-}
-
 /* ---------- small screens ---------- */
 
 @media (max-width: 519.98px) {
@@ -549,30 +575,29 @@ h1 {
     padding: 0.75rem 1rem;
   }
 
-  h1 {
-    margin-bottom: 0.7rem;
+  .role {
+    margin-bottom: 0.8rem;
   }
 
-  .intro p {
-    line-height: 1.6;
+  .intro__text {
+    line-height: 1.55;
   }
 
-  .hint {
-    left: 50%;
-    translate: -50% 0;
-    white-space: nowrap;
-  }
 }
 
 @media (max-height: 560px) {
   h1 {
     font-size: 1.6rem;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.35rem;
   }
 
-  .intro p {
-    font-size: 0.78rem;
-    line-height: 1.5;
+  .role {
+    margin-bottom: 0.5rem;
+  }
+
+  .intro__text {
+    font-size: 0.8rem;
+    line-height: 1.45;
   }
 
   .station {
@@ -581,6 +606,16 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .js .role__text,
+  .js.is-ready .role__text {
+    width: auto;
+    animation: none;
+  }
+
+  .role::after {
+    animation: none;
+  }
+
   .cargo__door,
   .cargo__label {
     transition-duration: 0.01s !important;
