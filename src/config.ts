@@ -67,9 +67,9 @@ export const AGV = {
 } as const;
 
 export const TRAIN = {
-  /** Delay before the contact train shows up (s). */
-  firstDelayMin: 8,
-  firstDelayMax: 12,
+  /** Delay before the contact train sets off (s); it then needs a few seconds to arrive. */
+  firstDelayMin: 1,
+  firstDelayMax: 1,
   /** Pause between the freight trains that pass later (s). */
   passDelayMin: 16,
   passDelayMax: 28,
