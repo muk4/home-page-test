@@ -10,7 +10,11 @@ npm install
 npm run dev      # http://localhost:5173
 npm run build    # typecheck (tsc) + build do dist/
 npm run preview
+npm run build:single   # cały serwis w jednym pliku: dist-single/index.html
 ```
+
+`build:single` wbudowuje JS i CSS w `index.html` (ok. 560 KB, gzip ok. 165 KB), więc stronę można
+wrzucić na dowolny hosting statyczny razem z `favicon.svg` i `og-image.png`.
 
 Adres strony (canonical, Open Graph, JSON-LD) ustawia `VITE_SITE_URL` w `.env`
 (domyślnie `https://kansy.dev`). Build używa ścieżek względnych (`base: './'`),
