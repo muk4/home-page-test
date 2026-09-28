@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Piotr Kansy Software Solutions – strony, aplikacje i automatyzacja dla firm</title>
+    <meta
+      name="description"
+      content="Tworzę strony internetowe i aplikacje, pomagam przy istniejącym oprogramowaniu. Od ponad dekady buduję systemy dla firm – także dla produkcji i magazynów."
+    />
+    <meta name="author" content="Piotr Kansy" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="color-scheme" content="dark" />
+    <script>
+      document.documentElement.classList.add('js');
+    </script>
+    <link rel="canonical" href="%VITE_SITE_URL%/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pl_PL" />
+    <meta property="og:site_name" content="Piotr Kansy Software Solutions" />
+    <meta property="og:title" content="Piotr Kansy Software Solutions" />
+    <meta
+      property="og:description"
+      content="Strony internetowe, aplikacje i automatyzacja dla firm produkcyjnych i magazynów."
+    />
+    <meta property="og:url" content="%VITE_SITE_URL%/" />
+    <meta property="og:image" content="%VITE_SITE_URL%/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Animowana fabryka w stylu schematu technicznego i nazwa firmy" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap&subset=latin-ext"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "ProfessionalService",
+        "name": "Piotr Kansy Software Solutions",
+        "description": "Strony internetowe, aplikacje i automatyzacja dla firm produkcyjnych i magazynów.",
+        "url": "%VITE_SITE_URL%/",
+        "email": "mailto:kontakt@kansy.dev",
+        "founder": { "@type": "Person", "name": "Piotr Kansy" },
+        "sameAs": ["https://www.linkedin.com/in/piotr-kansy/", "https://github.com/muk4"]
+      }
+    </script>
+    <noscript>
+      <style>
+        .cargo__door { transform: rotateY(-118deg) !important; }
+        .cargo__door--right { transform: rotateY(118deg) !important; }
+        .cargo__label, .cargo__close, .hint { display: none !important; }
+      </style>
+    </noscript>
+  </head>
+  <body>
+    <div id="factory" class="factory" aria-hidden="true"></div>
+
+    <main class="page">
+      <div class="intro">
+        <h1>Piotr Kansy Software Solutions</h1>
+        <p>
+          Cześć! Tworzę strony internetowe i aplikacje, chętnie pomogę Ci też przy istniejącym oprogramowaniu.
+          Od ponad dekady pracuję nad systemami dla firm – między innymi dla produkcji i&nbsp;magazynów.
+        </p>
+      </div>
+
+      <section class="station" id="station" aria-label="Kontakt">
+        <div class="cargo" id="cargo" data-open="false">
+          <button class="cargo__toggle" id="cargo-toggle" type="button" aria-expanded="false" aria-controls="cargo-links">
+            <span class="cargo__door cargo__door--left" aria-hidden="true"></span>
+            <span class="cargo__door cargo__door--right" aria-hidden="true"></span>
+            <span class="cargo__label">Skontaktuj się</span>
+          </button>
+          <ul class="cargo__inside" id="cargo-links" aria-label="Dane kontaktowe">
+            <li>
+              <a href="mailto:kontakt@kansy.dev" title="kontakt@kansy.dev">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+                <span class="sr-only">E-mail: kontakt@kansy.dev</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://www.linkedin.com/in/piotr-kansy/" target="_blank" rel="noopener" title="LinkedIn">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+                  <rect x="2" y="9" width="4" height="12" />
+                  <circle cx="4" cy="4" r="2" />
+                </svg>
+                <span class="sr-only">LinkedIn (otwiera się w nowej karcie)</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/muk4" target="_blank" rel="noopener" title="GitHub">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+                  />
+                </svg>
+                <span class="sr-only">GitHub (otwiera się w nowej karcie)</span>
+              </a>
+            </li>
+          </ul>
+          <button class="cargo__close" id="cargo-close" type="button" aria-label="Zamknij kontener">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <p class="hint" aria-hidden="true"><span class="hint__dot"></span>Kliknij maszynę, żeby ją wyłączyć</p>
+    <div class="tooltip" id="tooltip" aria-hidden="true"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

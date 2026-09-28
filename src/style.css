@@ -1,0 +1,540 @@
+:root {
+  /* Tile size: the single source of truth, read by the canvas code too. */
+  --tile: 32px;
+  --accent: #ff9a1f;
+  --off: #ff4d3d;
+  --bg: #0a0a0a;
+  --fg: #ffffff;
+  --line: rgba(255, 255, 255, 0.78);
+  --cargo-w: calc(var(--tile) * 7);
+  --cargo-h: calc(var(--tile) * 1.75);
+  color-scheme: dark;
+}
+
+@media (max-width: 1023.98px), (max-height: 639.98px) {
+  :root {
+    --tile: 28px;
+  }
+}
+
+@media (max-width: 519.98px) {
+  :root {
+    --tile: 24px;
+    --cargo-w: calc(var(--tile) * 7);
+    --cargo-h: calc(var(--tile) * 1.75);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overflow: clip;
+  background: var(--bg);
+}
+
+body {
+  height: 100vh;
+  height: 100dvh;
+  color: var(--fg);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /* Plain grid until (or if) the canvas takes over. */
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: var(--tile) var(--tile);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- canvas ---------- */
+
+.factory {
+  position: fixed;
+  inset: 0;
+}
+
+.factory canvas {
+  display: block;
+}
+
+/* ---------- content ---------- */
+
+.page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  /* The canvas below gets the clicks; only real controls opt back in. */
+  pointer-events: none;
+}
+
+.intro {
+  position: relative;
+  isolation: isolate;
+  max-width: 46rem;
+  text-align: center;
+}
+
+/* Calm, darker spot under the text. */
+.intro::before {
+  content: '';
+  position: absolute;
+  inset: -55% -22% -40%;
+  z-index: -1;
+  background: radial-gradient(
+    closest-side,
+    rgba(10, 10, 10, 0.96) 0%,
+    rgba(10, 10, 10, 0.9) 50%,
+    rgba(10, 10, 10, 0.55) 78%,
+    rgba(10, 10, 10, 0) 100%
+  );
+}
+
+h1 {
+  margin: 0 0 0.9rem;
+  font-family: 'Space Grotesk', 'JetBrains Mono', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.75rem, min(1rem + 2.9vw, 1rem + 3.3vh), 3.4rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.intro p {
+  margin: 0 auto;
+  max-width: 39rem;
+  font-size: clamp(0.84rem, min(0.76rem + 0.32vw, 0.7rem + 0.5vh), 1.02rem);
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.86);
+  text-wrap: pretty;
+}
+
+/* Slot in the flow for the platform (2 tiles) and the track (2 tiles). */
+.station {
+  position: relative;
+  flex: none;
+  width: calc(var(--tile) * 11);
+  max-width: 100%;
+  height: calc(var(--tile) * 4);
+  margin-top: calc(var(--tile) * 1.1);
+}
+
+/* ---------- contact container ---------- */
+
+.cargo {
+  position: absolute;
+  left: 50%;
+  top: calc((var(--tile) * 2 - var(--cargo-h)) / 2);
+  width: var(--cargo-w);
+  height: var(--cargo-h);
+  margin-left: calc(var(--cargo-w) / -2);
+  perspective: calc(var(--cargo-w) * 2.4);
+  pointer-events: auto;
+  will-change: transform;
+  font-size: calc(var(--tile) * 0.47);
+}
+
+.cargo.is-transit {
+  pointer-events: none;
+}
+
+/* Until the script decides where the container is, keep it out of sight. */
+.js:not(.is-ready) .cargo {
+  visibility: hidden;
+}
+
+/* Accent twist-lock corners. */
+.cargo::after {
+  --c: var(--accent);
+  --l: calc(var(--tile) * 0.36);
+  content: '';
+  position: absolute;
+  inset: -3px;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) top left / 2px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / 2px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / 2px var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / var(--l) 2px no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / 2px var(--l) no-repeat;
+  transition: filter 0.2s;
+}
+
+.cargo.is-lifted::after,
+.cargo:hover::after {
+  filter: drop-shadow(0 0 4px rgba(255, 154, 31, 0.9));
+}
+
+.cargo__toggle {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+  transform-style: preserve-3d;
+}
+
+.cargo__toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+}
+
+.cargo__door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  border: 1.5px solid var(--line);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(var(--tile) * 0.22), rgba(255, 255, 255, 0.13) 0 calc(var(--tile) * 0.22 + 1px)),
+    #0b0b0b;
+  transition:
+    transform 0.7s cubic-bezier(0.25, 0.8, 0.25, 1),
+    border-color 0.2s;
+  backface-visibility: visible;
+}
+
+/* Locking bars next to the seam. */
+.cargo__door::before {
+  content: '';
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  width: calc(var(--tile) * 0.3);
+  border-left: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-right: 1.5px solid rgba(255, 255, 255, 0.55);
+}
+
+.cargo__door--left {
+  left: 0;
+  transform-origin: left center;
+  border-right-width: 0.75px;
+}
+
+.cargo__door--left::before {
+  right: calc(var(--tile) * 0.18);
+}
+
+.cargo__door--right {
+  right: 0;
+  transform-origin: right center;
+  border-left-width: 0.75px;
+}
+
+.cargo__door--right::before {
+  left: calc(var(--tile) * 0.18);
+}
+
+.cargo__label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  text-shadow:
+    0 0 6px #0b0b0b,
+    0 0 3px #0b0b0b;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  transform: translateZ(1px);
+}
+
+.cargo__label::before {
+  content: '';
+  position: absolute;
+  inset: 22% 14%;
+  background: #0b0b0b;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  z-index: -1;
+}
+
+@media (hover: hover) {
+  .cargo:not([data-open='true']) .cargo__toggle:hover .cargo__door {
+    border-color: var(--accent);
+  }
+
+  .cargo:not([data-open='true']):hover {
+    animation: cargo-pulse 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes cargo-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(255, 154, 31, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 7px rgba(255, 154, 31, 0.55));
+  }
+}
+
+.cargo[data-open='true'] .cargo__door--left {
+  transform: rotateY(-118deg);
+}
+
+.cargo[data-open='true'] .cargo__door--right {
+  transform: rotateY(118deg);
+}
+
+.cargo[data-open='true'] .cargo__label {
+  opacity: 0;
+}
+
+.cargo[data-open='true'] .cargo__toggle {
+  pointer-events: none;
+}
+
+/* Open doors can be clicked to shut them again. */
+.cargo[data-open='true'] .cargo__door {
+  pointer-events: auto;
+}
+
+.cargo__inside {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--tile) * 0.3);
+  margin: 0;
+  padding: 0 calc(var(--tile) * 1.15) 0 calc(var(--tile) * 0.35);
+  list-style: none;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  background:
+    linear-gradient(rgba(255, 154, 31, 0.07), rgba(255, 154, 31, 0.07)),
+    #050505;
+}
+
+.cargo__inside li {
+  display: contents;
+}
+
+.cargo__inside a {
+  display: grid;
+  place-items: center;
+  width: calc(var(--cargo-h) - 8px);
+  height: calc(var(--cargo-h) - 8px);
+  color: var(--fg);
+  border: 1px solid transparent;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.cargo__inside a:hover,
+.cargo__inside a:focus-visible {
+  color: var(--accent);
+  border-color: rgba(255, 154, 31, 0.6);
+  outline: none;
+}
+
+.cargo svg {
+  width: 56%;
+  height: 56%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cargo__close {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  right: calc(var(--tile) * 0.2);
+  display: grid;
+  place-items: center;
+  width: calc(var(--tile) * 0.85);
+  height: calc(var(--tile) * 0.85);
+  margin: 0;
+  padding: 0;
+  translate: 0 -50%;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: #0b0b0b;
+  color: var(--fg);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s,
+    visibility 0s 0.2s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.cargo[data-open='true'] .cargo__close {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.25s 0.35s,
+    visibility 0s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.cargo__close:hover,
+.cargo__close:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.cargo__close svg {
+  width: 70%;
+  height: 70%;
+}
+
+/* ---------- hint & tooltip ---------- */
+
+.hint {
+  position: fixed;
+  left: max(1rem, env(safe-area-inset-left));
+  bottom: max(0.8rem, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(10, 10, 10, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+}
+
+.hint__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: var(--fg);
+  background: rgba(24, 24, 24, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow:
+    0 0 0 1px #000,
+    0 8px 20px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.tooltip.is-visible {
+  opacity: 1;
+}
+
+.tooltip__name {
+  font-weight: 600;
+}
+
+.tooltip__state {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.tooltip__state.is-off {
+  color: var(--off);
+}
+
+.tooltip__help {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ---------- small screens ---------- */
+
+@media (max-width: 519.98px) {
+  .page {
+    padding: 0.75rem 1rem;
+  }
+
+  h1 {
+    margin-bottom: 0.7rem;
+  }
+
+  .intro p {
+    line-height: 1.6;
+  }
+
+  .hint {
+    left: 50%;
+    translate: -50% 0;
+    white-space: nowrap;
+  }
+}
+
+@media (max-height: 560px) {
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .intro p {
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+
+  .station {
+    margin-top: calc(var(--tile) * 0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cargo__door,
+  .cargo__label,
+  .cargo__close {
+    transition-duration: 0.01s !important;
+  }
+
+  .cargo:hover {
+    animation: none !important;
+  }
+}

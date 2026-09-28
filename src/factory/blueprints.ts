@@ -1,0 +1,79 @@
+import type { Blueprint } from './blueprint';
+
+/**
+ * Production lines, drawn as data (legend in blueprint.ts). Every line runs
+ * ore -> furnace -> plate -> assembler -> gear -> chest (the short "mini"
+ * lines stop at plates). The layout packs them into the free space around
+ * the text and flips them for variety.
+ */
+export const BLUEPRINTS: Blueprint[] = [
+  {
+    name: 'mini',
+    rows: [
+      'MM>>v.........',
+      'MM..>>eFFe>>eC',
+      '.......FF.....',
+    ],
+  },
+  {
+    name: 'kompakt',
+    rows: [
+      'MM>>v.......AAA....',
+      'MM..v.FF....AAA....',
+      '....>eFFe>>eAAAe>eC',
+    ],
+  },
+  {
+    name: 'linia',
+    rows: [
+      'MM>>>>v...........AAA........',
+      'MM....v....FF.....AAA........',
+      '......>>>>eFFe>>>eAAAe>>>>>eC',
+    ],
+  },
+  {
+    name: 'mini-paliwo',
+    rows: [
+      'MM>>v.........',
+      'MM..>>eFFe>>eC',
+      '.......FF.....',
+      '.......=......',
+      '....TT==......',
+      '....TT........',
+    ],
+  },
+  {
+    name: 'linia-paliwo',
+    rows: [
+      'MM>>>>v...........AAA........',
+      'MM....v....FF.....AAA........',
+      '......>>>>eFFe>>>eAAAe>>>>>eC',
+      '...........=.......=.........',
+      '...........====TT===.........',
+      '...............TT............',
+    ],
+  },
+  {
+    name: 'huta-mala',
+    rows: [
+      '....>>>>>>>>>v..........',
+      '....n..n.....v...AAA....',
+      '...FF.FF.....v...AAA....',
+      '...FF.FF.....>>>eAAAe>eC',
+      'MM.n..n.................',
+      'MM>>>>>>................',
+    ],
+  },
+  {
+    name: 'huta',
+    rows: [
+      '....>>>>>>>>>>>>v............',
+      '....n..n..n.....v....AAA.....',
+      '...FF.FF.FF.....v....AAA.....',
+      '...FF.FF.FF.....>>>>eAAAe>>eC',
+      '...n..n..n............=......',
+      'MM>>>>>>>>>...TT=======......',
+      'MM............TT.............',
+    ],
+  },
+];
