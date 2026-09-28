@@ -55,7 +55,7 @@
       <style>
         .cargo__door { transform: rotateY(-118deg) !important; }
         .cargo__door--right { transform: rotateY(118deg) !important; }
-        .cargo__label, .cargo__close, .hint { display: none !important; }
+        .cargo__label, .hint { display: none !important; }
       </style>
     </noscript>
   </head>
@@ -109,12 +109,11 @@
               </a>
             </li>
           </ul>
-          <button class="cargo__close" id="cargo-close" type="button" aria-label="Zamknij kontener">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+        </div>
+        <div class="crane" id="crane" aria-hidden="true">
+          <div class="crane__spreader"></div>
+          <div class="crane__beam"></div>
+          <div class="crane__trolley"></div>
         </div>
       </section>
     </main>

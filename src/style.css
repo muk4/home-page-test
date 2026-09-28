@@ -268,7 +268,7 @@ h1 {
   text-shadow:
     0 0 6px #0b0b0b,
     0 0 3px #0b0b0b;
-  transition: opacity 0.2s;
+  transition: opacity 0.25s;
   pointer-events: none;
   transform: translateZ(1px);
 }
@@ -283,11 +283,11 @@ h1 {
 }
 
 @media (hover: hover) {
-  .cargo:not([data-open='true']) .cargo__toggle:hover .cargo__door {
+  .cargo:not([data-open='true']):not(.is-closing) .cargo__toggle:hover .cargo__door {
     border-color: var(--accent);
   }
 
-  .cargo:not([data-open='true']):hover {
+  .cargo:not([data-open='true']):not(.is-closing):hover {
     animation: cargo-pulse 1.4s ease-in-out infinite;
   }
 }
@@ -310,8 +310,11 @@ h1 {
   transform: rotateY(118deg);
 }
 
-.cargo[data-open='true'] .cargo__label {
+/* The label hides at once when the doors open and comes back only once they are shut. */
+.cargo[data-open='true'] .cargo__label,
+.cargo.is-closing .cargo__label {
   opacity: 0;
+  transition-duration: 0.1s;
 }
 
 .cargo[data-open='true'] .cargo__toggle {
@@ -332,7 +335,7 @@ h1 {
   justify-content: center;
   gap: calc(var(--tile) * 0.3);
   margin: 0;
-  padding: 0 calc(var(--tile) * 1.15) 0 calc(var(--tile) * 0.35);
+  padding: 0 calc(var(--tile) * 0.35);
   list-style: none;
   border: 1.5px solid rgba(255, 255, 255, 0.5);
   background:
@@ -373,51 +376,99 @@ h1 {
   stroke-linejoin: round;
 }
 
-.cargo__close {
+/* ---------- gantry crane (over the container, so it is HTML too) ---------- */
+
+.crane {
+  --crane-w: calc(var(--cargo-w) + var(--tile) * 2);
   position: absolute;
+  left: 50%;
+  top: 0;
   z-index: 3;
-  top: 50%;
-  right: calc(var(--tile) * 0.2);
-  display: grid;
-  place-items: center;
-  width: calc(var(--tile) * 0.85);
-  height: calc(var(--tile) * 0.85);
-  margin: 0;
-  padding: 0;
-  translate: 0 -50%;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  width: var(--crane-w);
+  height: 0;
+  margin-left: calc(var(--crane-w) / -2);
+  pointer-events: none;
+  /* Parked over the back edge of the platform, clear of the container. */
+  transform: translate3d(0, calc(var(--tile) * -0.25), 0);
+  will-change: transform;
+}
+
+/* End carriages running on the crane rails. */
+.crane::before,
+.crane::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--tile) * -0.3);
+  width: calc(var(--tile) * 0.44);
+  height: calc(var(--tile) * 0.6);
+  border: 1.5px solid var(--line);
   background: #0b0b0b;
-  color: var(--fg);
-  cursor: pointer;
+}
+
+.crane::before {
+  left: calc(var(--tile) * 0.03);
+}
+
+.crane::after {
+  right: calc(var(--tile) * 0.03);
+}
+
+/* Lattice girder. */
+.crane__beam {
+  position: absolute;
+  left: calc(var(--tile) * 0.25);
+  right: calc(var(--tile) * 0.25);
+  top: calc(var(--tile) * -0.16);
+  height: calc(var(--tile) * 0.32);
+  border-block: 1.5px solid var(--line);
+  background:
+    repeating-linear-gradient(60deg, transparent 0 calc(var(--tile) * 0.2), rgba(255, 255, 255, 0.28) 0 calc(var(--tile) * 0.2 + 1px)),
+    #0b0b0b;
+}
+
+.crane__trolley {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--tile) * -0.3);
+  width: calc(var(--tile) * 1.1);
+  height: calc(var(--tile) * 0.6);
+  margin-left: calc(var(--tile) * -0.55);
+  border: 1.5px solid var(--line);
+  background: #0b0b0b;
+}
+
+.crane__trolley::after {
+  content: '';
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  top: 50%;
+  height: 1.5px;
+  margin-top: -0.75px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.crane.is-gripping .crane__trolley::after {
+  background: var(--accent);
+}
+
+/* Spreader frame that locks onto the container's corners. */
+.crane__spreader {
+  --c: var(--accent);
+  --s: calc(var(--tile) * 0.2);
+  position: absolute;
+  left: 50%;
+  top: calc(var(--cargo-h) / -2);
+  width: var(--cargo-w);
+  height: var(--cargo-h);
+  margin-left: calc(var(--cargo-w) / -2);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--s) var(--s) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--s) var(--s) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / var(--s) var(--s) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / var(--s) var(--s) no-repeat;
   opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.2s,
-    visibility 0s 0.2s,
-    color 0.15s,
-    border-color 0.15s;
-}
-
-.cargo[data-open='true'] .cargo__close {
-  opacity: 1;
-  visibility: visible;
-  transition:
-    opacity 0.25s 0.35s,
-    visibility 0s,
-    color 0.15s,
-    border-color 0.15s;
-}
-
-.cargo__close:hover,
-.cargo__close:focus-visible {
-  color: var(--accent);
-  border-color: var(--accent);
-  outline: none;
-}
-
-.cargo__close svg {
-  width: 70%;
-  height: 70%;
 }
 
 /* ---------- hint & tooltip ---------- */
@@ -529,8 +580,7 @@ h1 {
 
 @media (prefers-reduced-motion: reduce) {
   .cargo__door,
-  .cargo__label,
-  .cargo__close {
+  .cargo__label {
     transition-duration: 0.01s !important;
   }
 

@@ -5,6 +5,7 @@ import { Factory, type FactoryHooks } from './factory/Factory';
 import { computeLayout } from './factory/layout';
 import { Train, type Story } from './factory/Train';
 import { Cargo } from './ui/Cargo';
+import { Crane } from './ui/Crane';
 import { Tooltip } from './ui/Tooltip';
 
 const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -17,6 +18,7 @@ async function boot() {
   const station = document.getElementById('station')!;
   const tooltip = new Tooltip(document.getElementById('tooltip')!);
   const cargo = new Cargo(document.getElementById('cargo')!);
+  const crane = new Crane(document.getElementById('crane')!);
 
   const app = new Application();
   await app.init({
@@ -73,7 +75,7 @@ async function boot() {
     factory = new Factory(layout, hooks);
     app.stage.addChild(factory.root);
     factory.prewarm(SIM.prewarm);
-    train = new Train(layout, factory.trainLayer, cargo, story);
+    train = new Train(layout, factory.trainLayer, cargo, crane, story);
     tooltip.hide();
   };
   build();

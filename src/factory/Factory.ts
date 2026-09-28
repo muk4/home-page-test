@@ -1,14 +1,15 @@
 import { Container, Graphics, type FederatedPointerEvent } from 'pixi.js';
 import { SIM, STROKE } from '../config';
+import { AgvFleet } from './Agv';
 import { Assembler } from './Assembler';
 import { Belt, chevronContext } from './Belt';
 import { Chest } from './Chest';
 import { line } from './draw';
 import { Drill } from './Drill';
 import { Furnace, flameContexts } from './Furnace';
-import { DX, DY, mulberry32 } from './geometry';
+import { DX, DY, dirAngle, mulberry32, type Dir } from './geometry';
 import { drawGrid } from './Grid';
-import { Inserter, inserterArmContext } from './Inserter';
+import { Inserter, inserterArmContext, type InserterTarget } from './Inserter';
 import { ItemPool } from './Item';
 import type { Machine } from './Machine';
 import { drawTank, PipeRun, pipeDashContext } from './Pipe';
@@ -37,6 +38,7 @@ export class Factory {
   private readonly machines: Machine[] = [];
   private readonly chests: Chest[] = [];
   private readonly pipes: PipeRun[] = [];
+  private readonly fleet: AgvFleet;
   private readonly disposables: { destroy(): void }[] = [];
   private time = 0;
 
@@ -50,14 +52,15 @@ export class Factory {
     const chevronLayer = new Container();
     const flowLayer = new Container();
     const itemLayer = new Container();
+    const agvLayer = new Container();
     const machineLayer = new Container();
     const inserterLayer = new Container();
-    for (const passive of [chevronLayer, flowLayer, itemLayer, ground]) {
+    for (const passive of [chevronLayer, flowLayer, itemLayer, agvLayer, ground]) {
       passive.eventMode = 'none';
       passive.interactiveChildren = false;
     }
     this.trainLayer.eventMode = 'none';
-    this.root.addChild(drawGrid(layout.bounds, T), ground, chevronLayer, flowLayer, itemLayer, machineLayer, inserterLayer, this.trainLayer);
+    this.root.addChild(drawGrid(layout.bounds, T), ground, chevronLayer, flowLayer, itemLayer, agvLayer, machineLayer, inserterLayer, this.trainLayer);
 
     const chevron = chevronContext(T);
     const flames = flameContexts(T);
@@ -118,7 +121,8 @@ export class Factory {
       for (let y = def.y; y < def.y + def.h; y++) for (let x = def.x; x < def.x + def.w; x++) entityAt.set(key(x, y), entity);
     }
 
-    // Inserters, wired to whatever sits behind and in front of them.
+    // Inserters, wired to whatever sits behind and in front of them;
+    // one that feeds a chest also uses a chest standing beside it.
     for (const def of layout.inserters) {
       const ins = new Inserter(def.x, def.y, def.dir, T, arm, rng());
       const px = def.x - DX[def.dir];
@@ -130,14 +134,51 @@ export class Factory {
       const pe = entityAt.get(key(px, py));
       const qe = entityAt.get(key(qx, qy));
       ins.from = pb ? pb[0].pickPort(pb[1]) : pe instanceof Furnace || pe instanceof Assembler ? (pe as PickPort) : null;
-      ins.to = qb
+      const front: DropPort | null = qb
         ? qb[0].dropPort(qb[1])
         : qe instanceof Furnace || qe instanceof Assembler || qe instanceof Chest
           ? (qe as DropPort)
           : null;
+      const targets: InserterTarget[] = front ? [{ port: front, angle: dirAngle(def.dir) }] : [];
+      if (qe instanceof Chest) {
+        for (const side of [(def.dir + 1) % 4, (def.dir + 3) % 4] as Dir[]) {
+          const se = entityAt.get(key(def.x + DX[side], def.y + DY[side]));
+          if (se instanceof Chest) targets.push({ port: se, angle: dirAngle(side) });
+        }
+      }
+      ins.targets = targets;
       this.machines.push(ins);
       inserterLayer.addChild(ins.view);
     }
+
+    // Chests with an AGV lane fill up and get swapped; the others never fill.
+    const chestAt = (x: number, y: number) => {
+      const e = entityAt.get(key(x, y));
+      return e instanceof Chest ? e : undefined;
+    };
+    for (const route of layout.agvRoutes) {
+      const chest = chestAt(route.chest.x, route.chest.y);
+      if (!chest) continue;
+      chest.serviced = true;
+      // Start part-full, so the swaps are spread out in time.
+      chest.count = Math.floor(rng() * SIM.chestCapacity.gear * 0.9);
+    }
+    // A pair with a chest no AGV can reach stays as before: both never fill up.
+    for (const ins of this.machines) {
+      if (!(ins instanceof Inserter)) continue;
+      const pair = ins.targets.map((t) => t.port).filter((p): p is Chest => p instanceof Chest);
+      if (pair.some((c) => !c.serviced)) {
+        for (const c of pair) {
+          c.serviced = false;
+          c.count = 0;
+        }
+      } else if (pair.length > 1) {
+        // The spare chest starts empty, so a pair never fills up at once.
+        for (const c of pair.slice(1)) c.count = 0;
+      }
+    }
+    this.fleet = new AgvFleet(layout.agvRoutes, chestAt, agvLayer, T);
+    this.drawAgvLanes(ground);
 
     for (const def of layout.pipes) {
       const consumer = def.to === null ? null : byId.get(def.to);
@@ -194,6 +235,7 @@ export class Factory {
     for (const m of this.machines) m.update(dt);
     for (const b of this.belts) b.update(dt);
     for (const p of this.pipes) p.update(dt);
+    this.fleet.update(dt);
   }
 
   private render(dt: number) {
@@ -201,11 +243,13 @@ export class Factory {
     for (const m of this.machines) m.render(this.time);
     for (const p of this.pipes) p.render(this.time);
     for (const c of this.chests) c.render(dt);
+    this.fleet.render(this.time);
   }
 
   destroy() {
     this.root.destroy({ children: true });
     this.pool.destroy();
+    this.fleet.destroy();
     for (const d of this.disposables) d.destroy();
   }
 
@@ -241,6 +285,44 @@ export class Factory {
       }
       g.poly(pts).stroke(line(0.22, 1));
     }
+  }
+
+  /**
+   * AGV lanes as faint guide tape on the floor (each tile edge once, so shared
+   * stretches don't get darker) and corner marks on every chest spot.
+   */
+  private drawAgvLanes(g: Graphics) {
+    const T = this.layout.tile;
+    const seen = new Set<string>();
+    for (const route of this.layout.agvRoutes) {
+      for (let i = 1; i < route.tiles.length; i++) {
+        const a = route.tiles[i - 1];
+        const b = route.tiles[i];
+        const k = a.x < b.x || a.y < b.y ? `${a.x},${a.y}-${b.x},${b.y}` : `${b.x},${b.y}-${a.x},${a.y}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        const ax = (a.x + 0.5) * T;
+        const ay = (a.y + 0.5) * T;
+        const bx = (b.x + 0.5) * T;
+        const by = (b.y + 0.5) * T;
+        // Short dash across each tile boundary.
+        g.moveTo(ax + (bx - ax) * 0.3, ay + (by - ay) * 0.3).lineTo(ax + (bx - ax) * 0.7, ay + (by - ay) * 0.7);
+      }
+    }
+    g.stroke(line(0.12, 1));
+    const m = T * 0.06;
+    const c = T * 0.18;
+    for (const route of this.layout.agvRoutes) {
+      const x0 = route.chest.x * T + m;
+      const y0 = route.chest.y * T + m;
+      const x1 = (route.chest.x + 1) * T - m;
+      const y1 = (route.chest.y + 1) * T - m;
+      g.moveTo(x0, y0 + c).lineTo(x0, y0).lineTo(x0 + c, y0);
+      g.moveTo(x1 - c, y0).lineTo(x1, y0).lineTo(x1, y0 + c);
+      g.moveTo(x0, y1 - c).lineTo(x0, y1).lineTo(x0 + c, y1);
+      g.moveTo(x1 - c, y1).lineTo(x1, y1).lineTo(x1, y1 - c);
+    }
+    g.stroke(line(0.3, 1));
   }
 
   private drawPoles(g: Graphics) {

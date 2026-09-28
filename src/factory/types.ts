@@ -37,6 +37,12 @@ export interface PipeDef {
   to: number | null;
 }
 
+/** Lane of an AGV: from the chest's tile to a tile off-screen (tile centres). */
+export interface AgvRouteDef {
+  chest: { x: number; y: number };
+  tiles: { x: number; y: number }[];
+}
+
 export interface PoleDef {
   x: number;
   y: number;
@@ -75,4 +81,5 @@ export interface LayoutData {
   inserters: InserterDef[];
   pipes: PipeDef[];
   poles: PoleDef[];
+  agvRoutes: AgvRouteDef[];
 }

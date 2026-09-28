@@ -8,6 +8,12 @@ import type { DropPort, PickPort } from './ports';
 
 type Phase = 'pick' | 'toDrop' | 'drop' | 'toPick';
 
+/** Where an inserter can put things, and the arm angle to reach it. */
+export interface InserterTarget {
+  port: DropPort;
+  angle: number;
+}
+
 const ARM = 0.92;
 
 export function inserterArmContext(T: number) {
@@ -30,21 +36,28 @@ export function inserterArmContext(T: number) {
 }
 
 /**
- * Inserter: swings between the tile behind it and the tile in front of it.
- * Waits at the pick side until there is something the target wants,
- * then carries it over and waits until the target has room.
+ * Inserter: swings between the tile behind it and the tile in front of it
+ * (or a chest beside it). Waits at the pick side until there is something a
+ * target wants, then carries it over and waits until the target has room.
+ * With two chests it fills one until full, then switches to the other.
  */
 export class Inserter extends Machine {
   readonly label = 'Inserter';
   readonly dir: Dir;
   from: PickPort | null = null;
-  to: DropPort | null = null;
+  /** First entry is the tile in front; extra entries are chests beside it. */
+  targets: InserterTarget[] = [];
 
   private readonly arm: Graphics;
   private readonly pickAngle: number;
   private phase: Phase = 'pick';
   private t = 0;
   private held: Item | null = null;
+  private target: InserterTarget | null = null;
+  /** Index of the target being filled now. */
+  private active = 0;
+  /** Signed arm rotation from pick to drop for the current swing. */
+  private delta = Math.PI;
 
   constructor(x: number, y: number, dir: Dir, T: number, armCtx: GraphicsContext, phase: number) {
     super(x, y, 1, 1, T);
@@ -76,39 +89,47 @@ export class Inserter extends Machine {
   }
 
   update(dt: number) {
-    if (!this.on || !this.from || !this.to) return;
-    const to = this.to;
+    if (!this.on || !this.from || !this.targets.length) return;
+    const swing = SIM.inserterSwing * Math.max(0.5, Math.abs(this.delta) / Math.PI);
     switch (this.phase) {
       case 'pick': {
         if (this.t > 0) {
           this.t -= dt;
           break;
         }
-        const item = this.from.take((k) => to.wants(k));
-        if (item) {
+        // Keep filling the current target; move on only when it takes nothing more.
+        for (let k = 0; k < this.targets.length; k++) {
+          const i = (this.active + k) % this.targets.length;
+          const target = this.targets[i];
+          const item = this.from.take((kind) => target.port.wants(kind));
+          if (!item) continue;
+          this.active = i;
           this.held = item;
+          this.target = target;
+          this.delta = shortestTurn(target.angle - this.pickAngle);
           this.phase = 'toDrop';
           this.t = 0;
+          break;
         }
         break;
       }
       case 'toDrop':
-        this.t += dt / SIM.inserterSwing;
+        this.t += dt / swing;
         if (this.t >= 1) {
           this.t = 1;
           this.phase = 'drop';
         }
         break;
       case 'drop':
-        if (this.held && to.canDrop(this.held.kind)) {
-          to.drop(this.held);
+        if (this.held && this.target && this.target.port.canDrop(this.held.kind)) {
+          this.target.port.drop(this.held);
           this.held = null;
           this.phase = 'toPick';
           this.t = 0;
         }
         break;
       case 'toPick':
-        this.t += dt / SIM.inserterSwing;
+        this.t += dt / swing;
         if (this.t >= 1) {
           this.t = 0;
           this.phase = 'pick';
@@ -130,7 +151,7 @@ export class Inserter extends Machine {
       k = 1 - ease(this.t);
       bend = Math.sin(Math.PI * this.t);
     }
-    const angle = this.pickAngle + k * Math.PI;
+    const angle = this.pickAngle + k * this.delta;
     const reach = 1 - 0.28 * bend;
     this.arm.rotation = angle;
     this.arm.scale.x = reach;
@@ -141,4 +162,13 @@ export class Inserter extends Machine {
     }
     super.renderLed(time);
   }
+}
+
+/** Angle in (-π, π]; a half turn stays +π so straight-through swings keep their old direction. */
+function shortestTurn(a: number): number {
+  let d = a % (Math.PI * 2);
+  if (d <= -Math.PI) d += Math.PI * 2;
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (Math.abs(Math.abs(d) - Math.PI) < 1e-6) d = Math.PI;
+  return d;
 }

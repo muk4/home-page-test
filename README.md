@@ -37,6 +37,7 @@ src/
   style.css               treść, kontener (drzwi w CSS 3D), tooltip, podpowiedź, --tile
   ui/Cargo.ts             kontener „Skontaktuj się”: aria-expanded, Esc, transport pociągiem
   ui/Tooltip.ts           tooltip w stylu Factorio („Piec – WŁ”)
+  ui/Crane.ts             belka dźwigu (HTML, żeby przejeżdżała nad kontenerem)
   factory/
     blueprints.ts         linie produkcyjne jako dane (ASCII)
     blueprint.ts          parser blueprintów + odbicia lustrzane
@@ -46,7 +47,8 @@ src/
     Factory.ts            buduje encje z danych, łączy porty, jedna pętla update/render
     Belt.ts  Inserter.ts  Assembler.ts  Furnace.ts  Drill.ts  Chest.ts  Pipe.ts
     Machine.ts            baza maszyn: WŁ/WYŁ, dioda, podświetlenie
-    Train.ts              pociąg, dźwig, dostawa kontenera, późniejsze składy towarowe
+    Train.ts              pociąg, sterowanie dźwigiem, dostawa kontenera, składy towarowe
+    Agv.ts                wózki AGV: wymiana pełnych skrzyń na puste
     Track.ts  Grid.ts     statyczne tory, peron, szyny dźwigu, siatka (rysowane raz)
     Item.ts               przedmioty (ruda, płytka, zębatka) ze wspólnym GraphicsContext
 ```
@@ -67,7 +69,7 @@ Legenda blueprintów: `> < ^ v` taśma, `e s w n` inserter (kierunek odkładania
 
 ```
 MM>>>>v...........AAA........      ruda -> piec -> płytka -> maszyna -> zębatka -> skrzynia
-MM....v....FF.....AAA........
+MM....v....FF.....AAA......C.      (druga skrzynia nad ostatnim robotem)
 ......>>>>eFFe>>>eAAAe>>>>>eC
 ```
 
@@ -84,44 +86,57 @@ MM....v....FF.....AAA........
 - przepustowość każdego etapu jest większa niż etapu przed nim, więc zdrowa linia płynie,
   a zatory powoduje tylko wyłączona maszyna.
 
+**Wózki AGV.** Ostatni robot każdej linii ma dwie skrzynie (z przodu i z boku). Napełnia
+jedną, a gdy jest pełna (24 zębatki albo 40 płytek), przechodzi do drugiej. Po pełną skrzynię
+przyjeżdża zza ekranu AGV, wjeżdża pod nią, podnosi ją i wywozi. Po chwili wraca z pustą
+i odstawia ją na to samo miejsce. Trasy liczy generator układu (`planAgvRoutes` w
+`layout.ts`): Dijkstra po wolnych kaflach z karą za zakręty, więc tory jazdy są proste
+i omijają maszyny, tekst i tor kolejowy. Na posadzce widać je jako delikatną przerywaną
+linię, a miejsca skrzyń mają narożniki postojowe. Wózek na zakrętach staje i obraca się
+w miejscu, a na ostatnich ~1,6 kafla przed skrzynią zwalnia do połowy prędkości. Spod
+skrzyni wycofuje się tyłem i trzyma odstęp od wózka jadącego przed nim. Parametry są
+w `AGV` i `SIM.chestCapacity` w `config.ts`.
+
 Wyłączenie pieca, maszyny, insertera lub wiertła (klik/tap) zatrzymuje je; przed nimi
 taśma się zapycha, za nimi pustoszeje. Po włączeniu wszystko rusza.
 
 ## Szkic układu (wygenerowany dla 1366×768)
 
-Spacje – strefa treści (bez maszyn), `=` na całej szerokości – tor, `_`/`#` – peron i kontener.
+Spacje – strefa treści (bez maszyn), `=` na całej szerokości – tor, `_`/`#` – peron i kontener,
+`:` – trasy wózków AGV (od skrzyni do krawędzi ekranu).
 
 ```
-Aw<<wFFw<...........>>>>eFFe>>>eAAAe>>>>>eC
-...........................................
-AAA.......v<<MM.........AAA...........v<<<<
-AAA....FF.v..MM.........AAA.....FF....v....
-AAAw<<wFFw<.....Cw<<<<<wAAAw<<<wFFw<<<<....
-...........................................
-v.........                       MM>>v.....
->>eFFe>>eC                       MM..>>eFFe
-...FF.....         TEKST         .......FF.
-...=......                       .......=..
-TT==......                       ....TT==..
-TT........                       ....TT....
-..........                       ..........
+FFe>>eAAAe>eC:::::..>>>>eFFe>>>eAAAe>>>>>eC
+.............::.::.........................
+v.......AAA..::.::......AAA...........v<<<<
+v.FF....AAA..C:.:C......AAA.....FF....v....
+>eFFe>>eAAAe>eC.Cw<<<<<wAAAw<<<wFFw<<<<....
+::::::::::.......................::::::::::
+...FF....:                       :C.......v
+>>eFFe>>eC                       Cw<<wFFw<<
+^.......C.         TEKST         .....FF...
+::::::::::                       ......=...
+...FF....:                       ......==TT
+>>eFFe>>eC                       ........TT
+^.......C.                       ..........
 ..........       _KONTAKT_       ..........
 ..........       _#######_       ..........
 ===========================================
 ===========================================
 ...........................................
-..........TT..............................<
-......====TT===............................
-......=.......=...........Cw<wAAAw<<<.....F
-.>>>>eFFe>>>eAAAe>>>>>eC......AAA...^.....F
-.^....FF.....AAA..............AAA...^.....s
->^...........AAA....................^<<<<<<
-...........................................
+..........TT.............:Cw<wAAAw<<wFFw<..
+......====TT===.........:::C..AAA....FF.^..
+......=.......=.........::....AAA.......^<<
+.>>>>eFFe>>>eAAAe>>>>>eC::.................
+.^....FF.....AAA......C:::.......FF........
+>^...........AAA......::::MM..>>eFFe>>eC...
+......................::::MM>>^.......C:...
 ```
 
 ## Dostępność i wydajność
 
-- kontener to prawdziwy `<button aria-expanded>`; Tab/Enter/Spacja/Esc, przycisk X,
+- kontener to prawdziwy `<button aria-expanded>`; Tab/Enter/Spacja/Esc, a otwarte drzwi
+  zamyka się kliknięciem w skrzydło; napis wraca dopiero po domknięciu drzwi;
   linki są w HTML od początku (zewnętrzne z `target="_blank" rel="noopener"`);
   fokus na kontenerze przed przyjazdem pociągu od razu go dostarcza,
 - `prefers-reduced-motion`: bardzo wolna animacja, bez pociągu, kontener od razu na stacji,

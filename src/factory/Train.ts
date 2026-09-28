@@ -1,7 +1,8 @@
 import { Container, Graphics } from 'pixi.js';
 import { COLORS, STROKE, TRAIN } from '../config';
 import type { Cargo } from '../ui/Cargo';
-import { accentLine, blackFill, line } from './draw';
+import type { Crane } from '../ui/Crane';
+import { blackFill, line } from './draw';
 import type { LayoutData } from './types';
 
 /** Survives factory rebuilds (resize), so the delivery happens once. */
@@ -41,7 +42,7 @@ export class Train {
   private readonly cargo: Cargo;
   private readonly story: Story;
   private readonly layer: Container;
-  private readonly beam = new Container();
+  private readonly crane: Crane;
   private readonly T: number;
 
   private cars: Car[] = [];
@@ -52,20 +53,22 @@ export class Train {
   private head = 0;
   private speed = 0;
   private t = 0;
+  /** Crane beam centre line (tiles) and how firmly the spreader holds the container (0..1). */
   private beamY: number;
+  private grip = 0;
+  private lift = 0;
   private passTimer: number;
 
-  constructor(layout: LayoutData, layer: Container, cargo: Cargo, story: Story) {
+  constructor(layout: LayoutData, layer: Container, cargo: Cargo, crane: Crane, story: Story) {
     this.layout = layout;
     this.layer = layer;
     this.cargo = cargo;
+    this.crane = crane;
     this.story = story;
     this.T = layout.tile;
-    this.beamY = layout.station.platformY;
+    this.beamY = this.craneHome();
     this.passTimer = rand(TRAIN.passDelayMin, TRAIN.passDelayMax) * 0.6;
-    this.drawBeam();
-    layer.addChild(this.beam);
-    this.placeBeam();
+    this.placeCrane();
 
     if (story.phase === 'delivering') story.phase = 'delivered';
     if (story.phase === 'delivered') cargo.land();
@@ -79,11 +82,11 @@ export class Train {
     this.cargo.land();
     const contact = this.cars.find((c) => c.load === 'contact');
     if (contact) contact.load = null;
-    if (this.phase && this.phase !== 'pass') {
-      this.phase = 'depart';
-      this.beamY = this.layout.station.platformY;
-      this.placeBeam();
-    }
+    if (this.phase && this.phase !== 'pass') this.phase = 'depart';
+    this.beamY = this.craneHome();
+    this.grip = 0;
+    this.lift = 0;
+    this.placeCrane();
   }
 
   /** Reduced motion: the container is simply there and no trains run. */
@@ -120,12 +123,16 @@ export class Train {
         break;
       }
       case 'craneOut':
-        this.t += dt / 1.1;
-        this.beamY = station.platformY + (station.trackY - station.platformY) * ease(Math.min(1, this.t));
+        // From its parking spot over the platform to the wagon.
+        this.t += dt / 1.3;
+        this.beamY = this.craneHome() + (station.trackY - this.craneHome()) * ease(Math.min(1, this.t));
         if (this.t >= 1) this.next('lift');
         break;
       case 'lift':
-        this.t += dt / 0.5;
+        // Spreader comes down and locks, then the container goes up.
+        this.t += dt / 0.8;
+        this.grip = Math.min(1, this.t / 0.4);
+        this.lift = ease(Math.max(0, (this.t - 0.4) / 0.6));
         if (this.t >= 1) this.next('carry');
         break;
       case 'carry':
@@ -135,18 +142,17 @@ export class Train {
         break;
       case 'lower':
         this.t += dt / 0.5;
+        this.lift = 1 - ease(Math.min(1, this.t));
         if (this.t >= 1) this.next('release');
         break;
       case 'release':
-        this.t += dt / 0.45;
-        if (this.t >= 1) {
-          this.story.phase = 'delivered';
-          this.cargo.land();
-          this.next('depart');
-        }
+        this.t += dt / 0.4;
+        this.grip = 1 - Math.min(1, this.t);
+        if (this.t >= 1) this.next('depart');
         break;
       case 'depart':
       case 'pass':
+        if (this.story.phase === 'delivering') this.parkCrane(dt);
         this.speed = Math.min(TRAIN.speed, this.speed + TRAIN.accel * dt);
         this.head += this.speed * dt;
         if (this.head - this.length() > this.layout.bounds.x + this.layout.bounds.w + 1) this.despawn();
@@ -174,25 +180,34 @@ export class Train {
     const contact = this.cars.find((c) => c.load === 'contact');
     if (contact && this.story.phase !== 'delivered') {
       const cx = this.carCenter(contact);
-      this.cargo.transit((cx - station.centerX) * T, (station.trackY - station.platformY) * T, 0);
+      this.cargo.transit((cx - station.centerX) * T, (station.trackY - station.platformY) * T, this.lift);
     } else if (this.story.phase === 'delivering') {
-      let lift = 0;
-      if (this.phase === 'lift') lift = ease(this.t);
-      else if (this.phase === 'carry') lift = 1;
-      else if (this.phase === 'lower') lift = 1 - ease(this.t);
-      this.cargo.transit(0, (this.beamY - station.platformY) * T, lift);
+      // Hanging from the crane until released, then it stays on the platform.
+      const y = this.grip > 0 ? this.beamY : station.platformY;
+      this.cargo.transit(0, (y - station.platformY) * T, this.lift);
     }
-    this.placeBeam();
+    this.placeCrane();
     // Keep off-screen trains cheap.
     this.train.visible = this.head > view.x - 1 && this.head - this.length() < view.x + view.w + 1;
   }
 
-  private placeBeam() {
-    const T = this.T;
+  /** Beam back to its parking spot; the delivery counts as done once it is clear of the container. */
+  private parkCrane(dt: number) {
+    const home = this.craneHome();
+    this.beamY = Math.max(home, this.beamY - dt * 2.2);
+    if (this.beamY <= home) {
+      this.story.phase = 'delivered';
+      this.cargo.land();
+    }
+  }
+
+  private craneHome() {
+    return this.layout.station.platformRow - 0.25;
+  }
+
+  private placeCrane() {
     const { station } = this.layout;
-    this.beam.position.set(station.centerX * T, this.beamY * T);
-    const busy = this.phase === 'lift' || this.phase === 'carry' || this.phase === 'lower';
-    this.beam.children[1].tint = busy ? COLORS.accent : 0xffffff;
+    this.crane.set((this.beamY - station.platformRow) * this.T, this.grip, this.lift);
   }
 
   private stopHead() {
@@ -238,6 +253,12 @@ export class Train {
   }
 
   private despawn() {
+    if (this.story.phase === 'delivering') {
+      this.beamY = this.craneHome();
+      this.story.phase = 'delivered';
+      this.cargo.land();
+      this.placeCrane();
+    }
     this.train?.destroy({ children: true });
     this.train = null;
     this.cars = [];
@@ -328,30 +349,6 @@ export class Train {
     g.moveTo(-L / 2 + T * 0.3, -W / 2).lineTo(-L / 2 + T * 0.3, W / 2).moveTo(L / 2 - T * 0.3, -W / 2).lineTo(L / 2 - T * 0.3, W / 2);
     g.stroke(line(STROKE.soft, 1));
     return g;
-  }
-
-  private drawBeam() {
-    const T = this.T;
-    const { station } = this.layout;
-    const half = ((station.craneX1 - station.craneX0) / 2) * T;
-    const rails = new Graphics();
-    rails
-      .rect(-half - T * 0.25, -T * 0.22, half * 2 + T * 0.5, T * 0.44)
-      .stroke(line(STROKE.normal, 1))
-      .moveTo(-half, -T * 0.12)
-      .lineTo(half, -T * 0.12)
-      .moveTo(-half, T * 0.12)
-      .lineTo(half, T * 0.12)
-      .stroke(line(STROKE.strong));
-    const trolley = new Graphics();
-    trolley
-      .rect(-T * 0.55, -T * 0.34, T * 1.1, T * 0.68)
-      .fill(blackFill)
-      .stroke(line(STROKE.strong))
-      .moveTo(-T * 0.3, 0)
-      .lineTo(T * 0.3, 0)
-      .stroke(accentLine(0.9, 1));
-    this.beam.addChild(rails, trolley);
   }
 }
 

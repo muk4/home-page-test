@@ -2,7 +2,7 @@ import { TRAIN } from '../config';
 import { flipH, flipV, parseBlueprint, type ParsedBlueprint } from './blueprint';
 import { BLUEPRINTS } from './blueprints';
 import { mulberry32, type TileRect } from './geometry';
-import type { LayoutData, MachineDef, PoleDef } from './types';
+import type { AgvRouteDef, LayoutData, MachineDef, PoleDef } from './types';
 
 export interface ScreenRect {
   left: number;
@@ -115,6 +115,7 @@ export function computeLayout(input: LayoutInput): LayoutData {
     inserters: [],
     pipes: [],
     poles: [],
+    agvRoutes: [],
   };
 
   const allHeights = [...cat.keys()].sort((a, b) => b - a);
@@ -147,6 +148,7 @@ export function computeLayout(input: LayoutInput): LayoutData {
     }
   }
 
+  layout.agvRoutes = planAgvRoutes(layout);
   layout.poles = placePoles(layout, rng);
   return layout;
 }
@@ -191,17 +193,20 @@ function packShelf(
 
   for (;;) {
     const room = fromRight ? cursor - limit : limit - cursor;
-    // May run past the outer edge (it's off-screen there), never into the text.
-    const first = choose(room + OUTER_SLACK, height, true);
+    // Prefer lines that fit whole (their chests stay on screen); otherwise one may
+    // run past the outer edge (it's off-screen there), never into the text.
+    const first = choose(room, height, true) ?? choose(room + OUTER_SLACK, height, true);
     if (!first) break;
     const colW = first.variants[0].w;
     const x0 = fromRight ? cursor - colW : cursor;
     let offset = 0;
     let option: Option | null = first;
     while (option) {
-      const bp = option.variants[Math.floor(rng() * 4)];
-      const bx = fromRight ? x0 + colW - bp.w : x0;
-      const by = stackUp ? y + height - offset - bp.h : y + offset;
+      const h = option.variants[0].h;
+      const w = option.variants[0].w;
+      const bx = fromRight ? x0 + colW - w : x0;
+      const by = stackUp ? y + height - offset - h : y + offset;
+      const bp = pickVariant(option.variants, bx, by, layout.view, rng);
       place(layout, bp, bx, by);
       offset += bp.h + 1;
       option = height - offset >= minH ? choose(colW, height - offset, false) : null;
@@ -209,6 +214,22 @@ function packShelf(
     const gap = 1 + Math.floor(rng() * 2);
     cursor = fromRight ? x0 - gap : x0 + colW + gap;
   }
+}
+
+/**
+ * Among the mirror variants, prefer the one that keeps the most chests on
+ * screen (lines cut by the screen edge still show their AGV swaps);
+ * ties are broken at random for variety.
+ */
+function pickVariant(variants: ParsedBlueprint[], x: number, y: number, view: TileRect, rng: () => number) {
+  const visible = (bp: ParsedBlueprint) =>
+    bp.machines.filter(
+      (m) => m.type === 'chest' && m.x + x >= view.x && m.y + y >= view.y && m.x + x < view.x + view.w && m.y + y < view.y + view.h,
+    ).length;
+  const scores = variants.map(visible);
+  const best = Math.max(...scores);
+  const top = variants.filter((_, i) => scores[i] === best);
+  return top[Math.floor(rng() * top.length)];
 }
 
 function place(layout: LayoutData, bp: ParsedBlueprint, ox: number, oy: number) {
@@ -237,6 +258,7 @@ function placePoles(layout: LayoutData, rng: () => number): PoleDef[] {
   layout.belts.forEach((b) => b.tiles.forEach((t) => mark(t.x, t.y)));
   layout.pipes.forEach((p) => p.tiles.forEach((t) => mark(t.x, t.y)));
   layout.inserters.forEach((i) => mark(i.x, i.y));
+  layout.agvRoutes.forEach((r) => r.tiles.forEach((t) => mark(t.x, t.y)));
   const { content, station, bounds } = layout;
   const inContent = (x: number, y: number) =>
     x >= content.x - 1 && x < content.x + content.w + 1 && y >= content.y - 1 && y < content.y + content.h + 1;
@@ -259,4 +281,144 @@ function placePoles(layout: LayoutData, rng: () => number): PoleDef[] {
     }
   }
   return poles;
+}
+
+/**
+ * Lanes for the AGVs: from every visible chest to the nearest spot off-screen,
+ * over free tiles only (never across machines, belts, the text or the track).
+ * Dijkstra over (tile, heading) with a price on turns gives straight lanes;
+ * a small price on tiles already used by other lanes spreads the traffic.
+ */
+function planAgvRoutes(layout: LayoutData): AgvRouteDef[] {
+  const { bounds, view, content, station } = layout;
+  const x0 = bounds.x - 2;
+  const y0 = bounds.y - 2;
+  const w = bounds.w + 4;
+  const h = bounds.h + 4;
+  const idx = (x: number, y: number) => (y - y0) * w + (x - x0);
+  const inGrid = (x: number, y: number) => x >= x0 && y >= y0 && x < x0 + w && y < y0 + h;
+  const blocked = new Uint8Array(w * h);
+  const block = (x: number, y: number) => {
+    if (inGrid(x, y)) blocked[idx(x, y)] = 1;
+  };
+  for (const m of layout.machines) for (let y = m.y; y < m.y + m.h; y++) for (let x = m.x; x < m.x + m.w; x++) block(x, y);
+  layout.belts.forEach((b) => b.tiles.forEach((t) => block(t.x, t.y)));
+  layout.pipes.forEach((p) => p.tiles.forEach((t) => block(t.x, t.y)));
+  layout.inserters.forEach((i) => block(i.x, i.y));
+  for (let y = content.y; y < content.y + content.h; y++) for (let x = content.x; x < content.x + content.w; x++) block(x, y);
+  for (let y = station.platformRow - 1; y <= station.platformRow + 4; y++) for (let x = x0; x < x0 + w; x++) block(x, y);
+
+  const offScreen = (x: number, y: number) => x < view.x || y < view.y || x >= view.x + view.w || y >= view.y + view.h;
+  const used = new Float32Array(w * h);
+  const routes: AgvRouteDef[] = [];
+  const chests = layout.machines.filter((m) => m.type === 'chest' && !offScreen(m.x, m.y));
+  const DXS = [1, 0, -1, 0];
+  const DYS = [0, 1, 0, -1];
+
+  for (const chest of chests) {
+    // state = tile index * 4 + heading
+    const dist = new Float32Array(w * h * 4).fill(Infinity);
+    const prev = new Int32Array(w * h * 4).fill(-1);
+    const heap = new MinHeap();
+    const start = idx(chest.x, chest.y);
+    for (let d = 0; d < 4; d++) {
+      const nx = chest.x + DXS[d];
+      const ny = chest.y + DYS[d];
+      if (!inGrid(nx, ny) || blocked[idx(nx, ny)]) continue;
+      const st = idx(nx, ny) * 4 + d;
+      dist[st] = 1 + used[idx(nx, ny)];
+      prev[st] = start * 4 + d;
+      heap.push(st, dist[st]);
+    }
+    let goal = -1;
+    while (heap.size) {
+      const [st, cost] = heap.pop();
+      if (cost > dist[st]) continue;
+      const tile = st >> 2;
+      const d = st & 3;
+      const tx = (tile % w) + x0;
+      const ty = Math.floor(tile / w) + y0;
+      if (offScreen(tx, ty)) {
+        goal = st;
+        break;
+      }
+      for (let nd = 0; nd < 4; nd++) {
+        if (nd === (d + 2) % 4) continue;
+        const nx = tx + DXS[nd];
+        const ny = ty + DYS[nd];
+        if (!inGrid(nx, ny) || blocked[idx(nx, ny)]) continue;
+        const ns = idx(nx, ny) * 4 + nd;
+        const nc = cost + 1 + (nd !== d ? 3 : 0) + used[idx(nx, ny)];
+        if (nc < dist[ns]) {
+          dist[ns] = nc;
+          prev[ns] = st;
+          heap.push(ns, nc);
+        }
+      }
+    }
+    if (goal < 0) continue;
+    const tiles: { x: number; y: number }[] = [];
+    for (let st = goal; st >= 0; st = prev[st]) {
+      const tile = st >> 2;
+      tiles.push({ x: (tile % w) + x0, y: Math.floor(tile / w) + y0 });
+      if (tile === start) break;
+    }
+    tiles.reverse();
+    // One more tile outwards when free, so the AGV has a margin beyond the edge.
+    const a = tiles[tiles.length - 2];
+    const b = tiles[tiles.length - 1];
+    const ex = b.x + (b.x - a.x);
+    const ey = b.y + (b.y - a.y);
+    if (inGrid(ex, ey) && !blocked[idx(ex, ey)]) tiles.push({ x: ex, y: ey });
+    for (const t of tiles) if (inGrid(t.x, t.y)) used[idx(t.x, t.y)] += 0.5;
+    routes.push({ chest: { x: chest.x, y: chest.y }, tiles });
+  }
+  return routes;
+}
+
+class MinHeap {
+  private readonly keys: number[] = [];
+  private readonly vals: number[] = [];
+
+  get size() {
+    return this.keys.length;
+  }
+
+  push(key: number, val: number) {
+    const { keys, vals } = this;
+    keys.push(key);
+    vals.push(val);
+    let i = keys.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (vals[p] <= vals[i]) break;
+      [keys[p], keys[i]] = [keys[i], keys[p]];
+      [vals[p], vals[i]] = [vals[i], vals[p]];
+      i = p;
+    }
+  }
+
+  pop(): [number, number] {
+    const { keys, vals } = this;
+    const top: [number, number] = [keys[0], vals[0]];
+    const lastK = keys.pop()!;
+    const lastV = vals.pop()!;
+    if (keys.length) {
+      keys[0] = lastK;
+      vals[0] = lastV;
+      let i = 0;
+      for (;;) {
+        const l = i * 2 + 1;
+        const r = l + 1;
+        let m = i;
+        if (l < keys.length && vals[l] < vals[m]) m = l;
+        if (r < keys.length && vals[r] < vals[m]) m = r;
+        if (m === i) break;
+        [keys[m], keys[i]] = [keys[i], keys[m]];
+        [vals[m], vals[i]] = [vals[i], vals[m]];
+        i = m;
+      }
+    }
+    return top;
+  }
 }

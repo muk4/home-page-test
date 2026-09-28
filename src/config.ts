@@ -37,10 +37,33 @@ export const SIM = {
   assemblerRecipe: 2,
   assemblerInputCap: 4,
   assemblerOutputCap: 2,
+  /** Items a chest takes before an AGV swaps it; flat plates stack denser than gears. */
+  chestCapacity: { ore: 40, plate: 40, gear: 24 },
   /** Seconds of simulation run before the first frame, so belts are already busy. */
   prewarm: 16,
   /** Largest simulation step; longer frames are split. */
   maxStep: 1 / 30,
+} as const;
+
+/** Automated guided vehicles that swap full chests for empty ones. */
+export const AGV = {
+  /** Cruise speed in tiles per second. */
+  speed: 4,
+  /** Close to the chest real AGVs slow down: half speed for the last tiles. */
+  slowSpeed: 2,
+  slowZone: 1.6,
+  accel: 5,
+  decel: 7,
+  /** Seconds for a 90° turn on the spot. */
+  pivotTime: 0.3,
+  /** Raising or lowering the chest (s). */
+  liftTime: 0.5,
+  /** Time off-screen before an empty chest comes back (s). */
+  awayMin: 1,
+  awayMax: 2.2,
+  /** Keep this distance (tiles) to the AGV ahead; give up waiting after `maxWait` s. */
+  followGap: 1.05,
+  maxWait: 2,
 } as const;
 
 export const TRAIN = {
