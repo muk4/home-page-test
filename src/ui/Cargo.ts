@@ -1,17 +1,17 @@
-/** Longest door animation (CSS) plus a margin; fallback when transitionend never comes. */
+/** Shutter animation (CSS) plus a margin; fallback when transitionend never comes. */
 const DOOR_CLOSE_MS = 800;
 
 /**
  * The "Skontaktuj się" container. A real <button> with aria-expanded; the
- * links live in the HTML from the start, the doors only cover them.
- * Open doors (or the empty inside) close it again, as does Esc.
+ * links live in the HTML from the start, a roller shutter only covers them.
+ * The roller (or the empty inside) closes it again, as does Esc.
  * While the train carries it, the element is moved with a transform.
  */
 export class Cargo {
   readonly el: HTMLElement;
   private readonly toggleBtn: HTMLButtonElement;
   private readonly links: HTMLElement;
-  private readonly door: HTMLElement;
+  private readonly roof: HTMLElement;
   private landed = true;
   private closeTimer = 0;
   /** Asked to skip the delivery (keyboard focus or activation during transit). */
@@ -21,14 +21,14 @@ export class Cargo {
     this.el = el;
     this.toggleBtn = el.querySelector('.cargo__toggle')!;
     this.links = el.querySelector('.cargo__inside')!;
-    this.door = el.querySelector('.cargo__door')!;
+    this.roof = el.querySelector('.cargo__roof')!;
 
-    // Also fires for clicks on the open doors: they sit inside the button.
+    // Also fires for clicks on the roller of an open container: it sits inside the button.
     this.toggleBtn.addEventListener('click', () => {
       if (!this.landed) this.onSkip?.();
       this.setOpen(!this.isOpen);
     });
-    // Clicking the empty inside (not a link) shuts the doors too.
+    // Clicking the empty inside (not a link) closes the shutter too.
     this.links.addEventListener('click', (e) => {
       if (!(e.target as HTMLElement).closest('a')) this.setOpen(false);
     });
@@ -43,7 +43,7 @@ export class Cargo {
         this.toggleBtn.focus();
       }
     });
-    this.door.addEventListener('transitionend', (e) => {
+    this.roof.addEventListener('transitionend', (e) => {
       if (e.propertyName === 'transform' && !this.isOpen) this.closed();
     });
   }
@@ -60,7 +60,7 @@ export class Cargo {
     if (open) {
       this.el.classList.remove('is-closing');
     } else {
-      // Keep the label hidden until the doors are shut.
+      // No hover pulse until the shutter is closed again.
       this.el.classList.add('is-closing');
       this.closeTimer = window.setTimeout(() => this.closed(), DOOR_CLOSE_MS);
     }

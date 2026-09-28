@@ -2,8 +2,8 @@
 
 One-page bez scrolla. W tle działa animowana, interaktywna fabryka w stylu Factorio
 (białe linie jak na schemacie technicznym, akcent `#ff9a1f`), na niej treść strony.
-Po kilku sekundach przyjeżdża pociąg, dźwig stawia na peronie kontener „Skontaktuj się”,
-a jego drzwi odsłaniają linki kontaktowe.
+Po chwili przyjeżdża pociąg, dźwig stawia na peronie kontener „Skontaktuj się”,
+a roleta na jego dachu odsłania linki kontaktowe.
 
 ```bash
 npm install
@@ -34,8 +34,8 @@ public/                   favicon.svg (zębatka), og-image.png
 src/
   main.ts                 start: Pixi, pomiar DOM -> layout -> fabryka, ticker, resize, visibility
   config.ts               kolory, grubości linii, parametry symulacji i pociągu
-  style.css               treść, kontener (drzwi w CSS 3D), tooltip, podpowiedź, --tile
-  ui/Cargo.ts             kontener „Skontaktuj się”: aria-expanded, Esc, transport pociągiem
+  style.css               treść, kontener (roleta w CSS), tooltip, --tile
+  ui/Cargo.ts             kontener „Skontaktuj się” (roleta): aria-expanded, Esc, transport pociągiem
   ui/Tooltip.ts           tooltip w stylu Factorio („Piec – WŁ”)
   ui/Crane.ts             belka dźwigu (HTML, żeby przejeżdżała nad kontenerem)
   factory/
@@ -135,8 +135,8 @@ e>>eAAAe>eC                     :.....==TT.
 
 ## Dostępność i wydajność
 
-- kontener to prawdziwy `<button aria-expanded>`; Tab/Enter/Spacja/Esc, a otwarte drzwi
-  zamyka się kliknięciem w skrzydło; napis wraca dopiero po domknięciu drzwi;
+- kontener to prawdziwy `<button aria-expanded>`; Tab/Enter/Spacja/Esc; roleta
+  zjeżdża w prawo na wałek (z napisem), zamyka się kliknięciem w wałek lub w puste wnętrze;
   linki są w HTML od początku (zewnętrzne z `target="_blank" rel="noopener"`);
   fokus na kontenerze przed przyjazdem pociągu od razu go dostarcza,
 - `prefers-reduced-motion`: bardzo wolna animacja, bez pociągu, kontener od razu na stacji,

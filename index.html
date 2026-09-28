@@ -53,9 +53,8 @@
     </script>
     <noscript>
       <style>
-        .cargo__door { transform: rotateY(-118deg) !important; }
-        .cargo__door--right { transform: rotateY(118deg) !important; }
-        .cargo__label { display: none !important; }
+        .cargo__roof { transform: translateX(calc(100% + 2px)) !important; }
+        .cargo__roller { width: var(--roller-full) !important; }
       </style>
     </noscript>
   </head>
@@ -76,9 +75,8 @@
       <section class="station" id="station" aria-label="Kontakt">
         <div class="cargo" id="cargo" data-open="false">
           <button class="cargo__toggle" id="cargo-toggle" type="button" aria-expanded="false" aria-controls="cargo-links">
-            <span class="cargo__door cargo__door--left" aria-hidden="true"></span>
-            <span class="cargo__door cargo__door--right" aria-hidden="true"></span>
-            <span class="cargo__label">Skontaktuj się</span>
+            <span class="cargo__roof"><span class="cargo__label">Skontaktuj się</span></span>
+            <span class="cargo__roller" aria-hidden="true"></span>
           </button>
           <ul class="cargo__inside" id="cargo-links" aria-label="Dane kontaktowe">
             <li>

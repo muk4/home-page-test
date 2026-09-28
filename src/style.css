@@ -221,7 +221,9 @@ h1 {
   width: var(--cargo-w);
   height: var(--cargo-h);
   margin-left: calc(var(--cargo-w) / -2);
-  perspective: calc(var(--cargo-w) * 2.4);
+  /* Roller the shutter winds onto: thin when the shutter is closed, fatter when rolled up. */
+  --roller: calc(var(--tile) * 0.28);
+  --roller-full: calc(var(--tile) * 0.42);
   pointer-events: auto;
   will-change: transform;
   font-size: calc(var(--tile) * 0.47);
@@ -273,7 +275,8 @@ h1 {
   color: var(--fg);
   font: inherit;
   cursor: pointer;
-  transform-style: preserve-3d;
+  /* The shutter disappears at the container's edge. */
+  overflow: hidden;
 }
 
 .cargo__toggle:focus-visible {
@@ -281,50 +284,50 @@ h1 {
   outline-offset: 5px;
 }
 
-.cargo__door {
+/* Roller shutter over the top of the container; slides right onto the roller. */
+.cargo__roof {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 50%;
+  left: 0;
+  right: var(--roller);
+  /* Own stacking context: the label's backing plate stays above the slats. */
+  isolation: isolate;
   border: 1.5px solid var(--line);
+  border-right: 0;
   background:
     repeating-linear-gradient(90deg, transparent 0 calc(var(--tile) * 0.22), rgba(255, 255, 255, 0.13) 0 calc(var(--tile) * 0.22 + 1px)),
     #0b0b0b;
   transition:
-    transform 0.7s cubic-bezier(0.25, 0.8, 0.25, 1),
+    transform 0.65s cubic-bezier(0.55, 0, 0.25, 1),
     border-color 0.2s;
-  backface-visibility: visible;
 }
 
-/* Locking bars next to the seam. */
-.cargo__door::before {
+/* Pull bar on the free edge of the shutter. */
+.cargo__roof::before {
   content: '';
   position: absolute;
-  top: 12%;
-  bottom: 12%;
-  width: calc(var(--tile) * 0.3);
-  border-left: 1.5px solid rgba(255, 255, 255, 0.55);
-  border-right: 1.5px solid rgba(255, 255, 255, 0.55);
+  top: 10%;
+  bottom: 10%;
+  left: calc(var(--tile) * 0.12);
+  width: calc(var(--tile) * 0.12);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  background: #0b0b0b;
 }
 
-.cargo__door--left {
-  left: 0;
-  transform-origin: left center;
-  border-right-width: 0.75px;
-}
-
-.cargo__door--left::before {
-  right: calc(var(--tile) * 0.18);
-}
-
-.cargo__door--right {
+.cargo__roller {
+  position: absolute;
+  top: 0;
   right: 0;
-  transform-origin: right center;
-  border-left-width: 0.75px;
-}
-
-.cargo__door--right::before {
-  left: calc(var(--tile) * 0.18);
+  bottom: 0;
+  z-index: 1;
+  width: var(--roller);
+  border: 1.5px solid var(--line);
+  background:
+    linear-gradient(90deg, #070707, #2a2a2a 45%, #0b0b0b);
+  transition:
+    width 0.65s cubic-bezier(0.55, 0, 0.25, 1),
+    border-color 0.2s;
 }
 
 .cargo__label {
@@ -340,22 +343,20 @@ h1 {
   text-shadow:
     0 0 6px #0b0b0b,
     0 0 3px #0b0b0b;
-  transition: opacity 0.25s;
   pointer-events: none;
-  transform: translateZ(1px);
 }
 
 .cargo__label::before {
   content: '';
   position: absolute;
-  inset: 22% 14%;
+  inset: 22% 12%;
   background: #0b0b0b;
   border: 1px solid rgba(255, 255, 255, 0.35);
   z-index: -1;
 }
 
 @media (hover: hover) {
-  .cargo:not([data-open='true']):not(.is-closing) .cargo__toggle:hover .cargo__door {
+  .cargo:not([data-open='true']):not(.is-closing) .cargo__toggle:hover :is(.cargo__roof, .cargo__roller) {
     border-color: var(--accent);
   }
 
@@ -374,27 +375,21 @@ h1 {
   }
 }
 
-.cargo[data-open='true'] .cargo__door--left {
-  transform: rotateY(-118deg);
+/* Open: the shutter (label and all) is rolled up out of sight. */
+.cargo[data-open='true'] .cargo__roof {
+  transform: translateX(calc(100% + 2px));
 }
 
-.cargo[data-open='true'] .cargo__door--right {
-  transform: rotateY(118deg);
-}
-
-/* The label hides at once when the doors open and comes back only once they are shut. */
-.cargo[data-open='true'] .cargo__label,
-.cargo.is-closing .cargo__label {
-  opacity: 0;
-  transition-duration: 0.1s;
+.cargo[data-open='true'] .cargo__roller {
+  width: var(--roller-full);
 }
 
 .cargo[data-open='true'] .cargo__toggle {
   pointer-events: none;
 }
 
-/* Open doors can be clicked to shut them again. */
-.cargo[data-open='true'] .cargo__door {
+/* The roller stays clickable to pull the shutter shut again. */
+.cargo[data-open='true'] .cargo__roller {
   pointer-events: auto;
 }
 
@@ -407,7 +402,7 @@ h1 {
   justify-content: center;
   gap: calc(var(--tile) * 0.3);
   margin: 0;
-  padding: 0 calc(var(--tile) * 0.35);
+  padding: 0 calc(var(--tile) * 0.35 + var(--roller-full)) 0 calc(var(--tile) * 0.35);
   list-style: none;
   border: 1.5px solid rgba(255, 255, 255, 0.5);
   background:
@@ -616,8 +611,8 @@ h1 {
     animation: none;
   }
 
-  .cargo__door,
-  .cargo__label {
+  .cargo__roof,
+  .cargo__roller {
     transition-duration: 0.01s !important;
   }
 
