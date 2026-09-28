@@ -1,3 +1,5 @@
+import { TEXTS, pageLang } from '../i18n';
+
 /** Small Factorio-like tooltip next to the pointer: just what a click will do. */
 export class Tooltip {
   private readonly el: HTMLElement;
@@ -9,7 +11,8 @@ export class Tooltip {
 
   show(on: boolean, x: number, y: number, touch = false) {
     window.clearTimeout(this.hideTimer);
-    this.el.textContent = `${touch ? 'dotknij' : 'kliknij'}, żeby ${on ? 'wyłączyć' : 'włączyć'}`;
+    const t = TEXTS[pageLang()];
+    this.el.textContent = touch ? (on ? t.tapOff : t.tapOn) : on ? t.clickOff : t.clickOn;
     this.el.classList.add('is-visible');
     this.move(x, y);
   }

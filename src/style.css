@@ -96,6 +96,8 @@ body {
   isolation: isolate;
   max-width: min(46rem, 100%);
   text-align: center;
+  /* The text can be selected and copied; no machines sit under it anyway. */
+  pointer-events: auto;
 }
 
 /* Calm, darker spot under the text. */
@@ -104,6 +106,8 @@ body {
   position: absolute;
   inset: -55% -22% -40%;
   z-index: -1;
+  /* The glow reaches over machines at its edges: let clicks through to them. */
+  pointer-events: none;
   background: radial-gradient(
     closest-side,
     rgba(10, 10, 10, 0.96) 0%,
@@ -536,6 +540,68 @@ h1 {
     linear-gradient(var(--c), var(--c)) bottom left / var(--s) var(--s) no-repeat,
     linear-gradient(var(--c), var(--c)) bottom right / var(--s) var(--s) no-repeat;
   opacity: 0;
+}
+
+/* ---------- language switch (like a selector switch on a machine) ---------- */
+
+.lang {
+  position: fixed;
+  top: max(0.9rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
+  z-index: 6;
+  display: flex;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  background: rgba(10, 10, 10, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 1px #000;
+}
+
+.lang__opt {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.7rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.lang__opt + .lang__opt {
+  box-shadow: inset 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* Status diode: lit on the active language. */
+.lang__opt::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.lang__opt[aria-current='page'] {
+  color: var(--fg);
+}
+
+.lang__opt[aria-current='page']::before {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.lang__opt:hover {
+  color: var(--fg);
+  border-color: rgba(255, 154, 31, 0.6);
+}
+
+.lang__opt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ---------- tooltip ---------- */

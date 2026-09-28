@@ -1,35 +1,59 @@
 <!doctype html>
-<html lang="pl">
+<html lang="{{lang}}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Piotr Kansy Software Solutions – strony, aplikacje i automatyzacja dla firm</title>
-    <meta
-      name="description"
-      content="Cześć, jestem Piotrek – senior fullstack developer (C#, .NET). Tworzę strony internetowe, aplikacje i systemy dla firm, m.in. dla produkcji i magazynów."
-    />
+    <script>
+      // Pick the language before anything is drawn: a choice made with the
+      // switcher (?lang=…, remembered), else Polish if the browser's first
+      // language is Polish, English otherwise. Crawlers are left alone so
+      // both versions get indexed (hreflang links pair them up).
+      (function () {
+        document.documentElement.classList.add('js');
+        var page = document.documentElement.lang;
+        var url = new URL(location.href);
+        var chosen = url.searchParams.get('lang');
+        var want = null;
+        if (chosen === 'pl' || chosen === 'en') {
+          want = chosen;
+          try {
+            localStorage.setItem('lang', chosen);
+          } catch (e) {}
+          url.searchParams.delete('lang');
+          history.replaceState(null, '', url.pathname + url.search + url.hash);
+        } else if (!/bot|crawl|spider|slurp|lighthouse/i.test(navigator.userAgent)) {
+          var saved = null;
+          try {
+            saved = localStorage.getItem('lang');
+          } catch (e) {}
+          var first = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+          want = saved === 'pl' || saved === 'en' ? saved : /^pl\b/i.test(first) ? 'pl' : 'en';
+        }
+        if (want && want !== page) location.replace((want === 'en' ? 'en/' : '../') + location.hash);
+      })();
+    </script>
+    <title>{{title}}</title>
+    <meta name="description" content="{{description}}" />
     <meta name="author" content="Piotr Kansy" />
     <meta name="theme-color" content="#0a0a0a" />
     <meta name="color-scheme" content="dark" />
-    <script>
-      document.documentElement.classList.add('js');
-    </script>
-    <link rel="canonical" href="%VITE_SITE_URL%/" />
+    <link rel="canonical" href="%VITE_SITE_URL%/{{pagePath}}" />
+    <link rel="alternate" hreflang="pl" href="%VITE_SITE_URL%/" />
+    <link rel="alternate" hreflang="en" href="%VITE_SITE_URL%/en/" />
+    <link rel="alternate" hreflang="x-default" href="%VITE_SITE_URL%/en/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:locale" content="pl_PL" />
+    <meta property="og:locale" content="{{ogLocale}}" />
+    <meta property="og:locale:alternate" content="{{ogLocaleAlt}}" />
     <meta property="og:site_name" content="Piotr Kansy Software Solutions" />
     <meta property="og:title" content="Piotr Kansy Software Solutions" />
-    <meta
-      property="og:description"
-      content="Cześć, jestem Piotrek – senior fullstack developer (C#, .NET). Strony internetowe, aplikacje i systemy dla firm, m.in. dla produkcji i magazynów."
-    />
-    <meta property="og:url" content="%VITE_SITE_URL%/" />
-    <meta property="og:image" content="%VITE_SITE_URL%/og-image.png" />
+    <meta property="og:description" content="{{ogDescription}}" />
+    <meta property="og:url" content="%VITE_SITE_URL%/{{pagePath}}" />
+    <meta property="og:image" content="%VITE_SITE_URL%/{{ogImage}}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Animowana fabryka w stylu schematu technicznego i powitanie" />
+    <meta property="og:image:alt" content="{{ogImageAlt}}" />
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -44,10 +68,10 @@
         "@context": "https://schema.org",
         "@type": "ProfessionalService",
         "name": "Piotr Kansy Software Solutions",
-        "description": "Strony internetowe, aplikacje i automatyzacja dla firm produkcyjnych i magazynów.",
-        "url": "%VITE_SITE_URL%/",
+        "description": "{{orgDescription}}",
+        "url": "%VITE_SITE_URL%/{{pagePath}}",
         "email": "mailto:kontakt@kansy.dev",
-        "founder": { "@type": "Person", "name": "Piotr Kansy", "jobTitle": "Senior fullstack developer" },
+        "founder": { "@type": "Person", "name": "Piotr Kansy", "jobTitle": "Senior full-stack developer" },
         "sameAs": ["https://www.linkedin.com/in/piotr-kansy/", "https://github.com/muk4"]
       }
     </script>
@@ -63,22 +87,18 @@
 
     <main class="page">
       <div class="intro">
-        <h1>Cześć, jestem Piotrek!</h1>
-        <p class="role"><span class="role__prompt" aria-hidden="true">&gt;</span><span class="role__text">senior fullstack developer / C# / dotnet</span></p>
-        <p class="intro__text">
-          Tworzę strony internetowe, aplikacje i&nbsp;systemy dla firm. Od ponad dekady pracuję nad oprogramowaniem
-          wspierającym między innymi produkcję i&nbsp;magazyny. Pomagam też rozwijać i&nbsp;usprawniać istniejące
-          rozwiązania. Napisz, jeśli masz ciekawy pomysł albo problem do rozwiązania!
-        </p>
+        <h1>{{greeting}}</h1>
+        <p class="role"><span class="role__prompt" aria-hidden="true">&gt;</span><span class="role__text">senior full-stack developer / C# / dotnet</span></p>
+        <p class="intro__text">{{intro}}</p>
       </div>
 
-      <section class="station" id="station" aria-label="Kontakt">
+      <section class="station" id="station" aria-label="{{contact}}">
         <div class="cargo" id="cargo" data-open="false">
           <button class="cargo__toggle" id="cargo-toggle" type="button" aria-expanded="false" aria-controls="cargo-links">
-            <span class="cargo__roof"><span class="cargo__label">Skontaktuj się</span></span>
+            <span class="cargo__roof"><span class="cargo__label">{{cargo}}</span></span>
             <span class="cargo__roller" aria-hidden="true"></span>
           </button>
-          <ul class="cargo__inside" id="cargo-links" aria-label="Dane kontaktowe">
+          <ul class="cargo__inside" id="cargo-links" aria-label="{{contactDetails}}">
             <li>
               <a href="mailto:kontakt@kansy.dev" title="kontakt@kansy.dev">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -95,7 +115,7 @@
                   <rect x="2" y="9" width="4" height="12" />
                   <circle cx="4" cy="4" r="2" />
                 </svg>
-                <span class="sr-only">LinkedIn (otwiera się w nowej karcie)</span>
+                <span class="sr-only">LinkedIn ({{newTab}})</span>
               </a>
             </li>
             <li>
@@ -105,7 +125,7 @@
                     d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
                   />
                 </svg>
-                <span class="sr-only">GitHub (otwiera się w nowej karcie)</span>
+                <span class="sr-only">GitHub ({{newTab}})</span>
               </a>
             </li>
           </ul>
@@ -117,6 +137,11 @@
         </div>
       </section>
     </main>
+
+    <nav class="lang" aria-label="{{langNav}}">
+      <a class="lang__opt" href="{{plHref}}" hreflang="pl" lang="pl" {{plCurrent}}>PL</a>
+      <a class="lang__opt" href="{{enHref}}" hreflang="en" lang="en" {{enCurrent}}>EN</a>
+    </nav>
     <div class="tooltip" id="tooltip" aria-hidden="true"></div>
 
     <script type="module" src="/src/main.ts"></script>

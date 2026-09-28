@@ -13,8 +13,9 @@ npm run preview
 npm run build:single   # cały serwis w jednym pliku: dist-single/index.html
 ```
 
-`build:single` wbudowuje JS i CSS w `index.html` (ok. 560 KB, gzip ok. 165 KB), więc stronę można
-wrzucić na dowolny hosting statyczny razem z `favicon.svg` i `og-image.png`.
+`build:single` wbudowuje JS i CSS w obie strony (`dist-single/index.html` i `dist-single/en/index.html`,
+każda ok. 560 KB, gzip ok. 165 KB), więc serwis można wrzucić na dowolny hosting statyczny razem
+z `favicon.svg` i obrazkami OG.
 
 Adres strony (canonical, Open Graph, JSON-LD) ustawia `VITE_SITE_URL` w `.env`
 (domyślnie `https://kansy.dev`). Build używa ścieżek względnych (`base: './'`),
@@ -35,6 +36,23 @@ i hreflang to zmienna repozytorium `SITE_URL` (Settings → Secrets and variable
 bez niej workflow używa adresu github.io. Przejście na własną domenę: rekordy DNS u rejestratora,
 domena w Settings → Pages → Custom domain i `SITE_URL=https://kansy.dev`.
 
+## Wersje językowe
+
+Strona ma dwie wersje: polską pod `/` i angielską pod `/en/`. Obie powstają przy buildzie z jednego
+szablonu `index.html`, w którym teksty zależne od języka to tokeny `{{klucz}}`. Teksty są w
+`src/i18n.ts` (`TEXTS.pl` / `TEXTS.en`) – razem z napisami używanymi w skrypcie (tooltip).
+Tokeny wypełnia plugin `i18nPages()` w `vite.config.ts`; w trybie dev wersję angielską widać pod
+`http://localhost:5173/en/`.
+
+Wybór języka robi krótki skrypt na początku `<head>`, zanim cokolwiek się wyświetli:
+1. wybór z przełącznika (link z `?lang=pl|en`) jest zapamiętywany w `localStorage`,
+2. bez zapisanego wyboru: jeśli pierwszym językiem przeglądarki jest polski → PL, w innym wypadku → EN,
+3. gdy strona jest w innym języku, następuje przekierowanie na drugą wersję.
+
+Roboty wyszukiwarek nie są przekierowywane, żeby Google zaindeksował obie wersje; znaczniki
+`hreflang` łączą je w parę (`x-default` wskazuje wersję angielską). Przełącznik PL | EN jest
+w prawym górnym rogu. Nowy język: dopisać wpis w `TEXTS`, stronę w pluginie i link w przełączniku.
+
 ## Stack
 
 - Vite + TypeScript (vanilla, bez frameworka UI)
@@ -44,14 +62,16 @@ domena w Settings → Pages → Custom domain i `SITE_URL=https://kansy.dev`.
 ## Struktura
 
 ```
-index.html                treść, meta SEO/OG, JSON-LD, kontener z linkami (od początku w HTML)
-public/                   favicon.svg (zębatka), og-image.png
+index.html                szablon obu wersji: treść, meta SEO/OG, hreflang, JSON-LD, wybór języka
+public/                   favicon.svg (zębatka), og-image.png, og-image-en.png
+.github/workflows/        deploy.yml – publikacja na GitHub Pages
 src/
+  i18n.ts                 teksty PL/EN (szablon + skrypt)
   main.ts                 start: Pixi, pomiar DOM -> layout -> fabryka, ticker, resize, visibility
   config.ts               kolory, grubości linii, parametry symulacji i pociągu
-  style.css               treść, kontener (roleta w CSS), tooltip, --tile
+  style.css               treść, kontener (roleta w CSS), przełącznik języka, tooltip, --tile
   ui/Cargo.ts             kontener „Skontaktuj się” (roleta): aria-expanded, Esc, transport pociągiem
-  ui/Tooltip.ts           tooltip w stylu Factorio („Piec – WŁ”)
+  ui/Tooltip.ts           tooltip w stylu Factorio („kliknij, żeby wyłączyć”)
   ui/Crane.ts             belka dźwigu (HTML, żeby przejeżdżała nad kontenerem)
   factory/
     blueprints.ts         linie produkcyjne jako dane (ASCII)
@@ -157,7 +177,8 @@ e>>eAAAe>eC                     :.....==TT.
 - `prefers-reduced-motion`: bardzo wolna animacja, bez pociągu, kontener od razu na stacji,
 - tooltip nad maszyną podpowiada tylko akcję („kliknij, żeby wyłączyć/włączyć”),
 - warstwa HTML ma `pointer-events: none`, kliknięcia odbiera canvas (EventSystem,
-  `eventMode = 'static'` tylko na maszynach),
+  `eventMode = 'static'` tylko na maszynach); wyjątki to kontener, przełącznik języka i blok
+  tekstu, który da się zaznaczać i kopiować (poświata wokół niego przepuszcza kliknięcia),
 - statyczne elementy (siatka, tory, obrysy taśm i rur) rysowane raz; przedmioty, szewrony
   i przerywane linie w rurach to współdzielone `GraphicsContext` przesuwane transformacją,
 - pauza tickera przy `visibilitychange`, `resolution` = devicePixelRatio (maks. 2).
