@@ -40,7 +40,7 @@ export const SIM = {
   /** Items a chest takes before an AGV swaps it; flat plates stack denser than gears. */
   chestCapacity: { ore: 40, plate: 40, gear: 24 },
   /** Seconds of simulation run before the first frame, so belts are already busy. */
-  prewarm: 16,
+  prewarm: 5,
   /** Largest simulation step; longer frames are split. */
   maxStep: 1 / 30,
 } as const;
