@@ -127,6 +127,8 @@ export function computeLayout(input: LayoutInput): LayoutData {
   const allHeights = [...cat.keys()].sort((a, b) => b - a);
   const minHeight = allHeights[allHeights.length - 1];
 
+  // A phone shows only a few lines: each should be a different one while there is a choice.
+  const usedOnScreen = new Set<string>();
   for (const region of regions) {
     if (region.w < 8 || region.h < minHeight) continue;
     const vertical = region.anchor === 'top' || region.anchor === 'bottom';
@@ -136,7 +138,8 @@ export function computeLayout(input: LayoutInput): LayoutData {
     const heights = allHeights.filter((h) => cat.get(h)!.some((o) => o.variants[0].w <= Math.min(maxW, region.w + OUTER_SLACK)));
     // Shelves are stacked away from the text: the lines closest to it are always complete.
     // Full shelves go into the visible rows first; one more may be cut by the screen edge.
-    const hidden = vertical ? OVERFLOW : 0;
+    // On a phone the top row is often only half on screen: lines above the text start below it.
+    const hidden = vertical ? OVERFLOW + (phone && region.anchor === 'bottom' ? 1 : 0) : 0;
     let visible = region.h - hidden;
     let used = 0;
     let shelfIndex = 0;
@@ -153,7 +156,7 @@ export function computeLayout(input: LayoutInput): LayoutData {
         .filter(([bh]) => bh <= h)
         .flatMap(([, list]) => list)
         .filter((o) => o.variants[0].w <= maxW);
-      packShelf(layout, options, region, shelfY, h, rng, vertical, shelfIndex++, phone);
+      packShelf(layout, options, region, shelfY, h, rng, vertical, shelfIndex++, phone, phone ? usedOnScreen : null);
       used += h + 1;
       visible -= h + 1;
     }
@@ -181,6 +184,8 @@ function packShelf(
   fullWidth: boolean,
   shelfIndex: number,
   phone: boolean,
+  /** Lines already placed elsewhere on the screen, avoided while others fit. */
+  used: Set<string> | null,
 ) {
   const fromRight = region.anchor === 'right';
   const stackUp = region.anchor === 'bottom';
@@ -194,7 +199,8 @@ function packShelf(
       : fromRight
         ? region.x + region.w
         : region.x;
-  const limit = fromRight ? region.x : region.x + region.w;
+  // On a phone a band ends at the last fully visible column: nothing sticks out sideways.
+  const limit = narrow ? layout.view.w - 1 : fromRight ? region.x : region.x + region.w;
   const minH = Math.min(...options.map((o) => o.variants[0].h));
   let last = '';
 
@@ -205,9 +211,11 @@ function packShelf(
     const best = Math.max(...fit.map(score));
     const good = fit.filter((o) => score(o) >= best * 0.6);
     const fresh = good.filter((o) => o.name !== last);
-    const pool = fresh.length ? fresh : good;
+    const unused = used ? fresh.filter((o) => !used.has(o.name)) : [];
+    const pool = unused.length ? unused : fresh.length ? fresh : good;
     const pick = pool[Math.floor(rng() * pool.length)];
     last = pick.name;
+    used?.add(pick.name);
     return pick;
   };
 
@@ -215,7 +223,7 @@ function packShelf(
     const room = fromRight ? cursor - limit : limit - cursor;
     // Prefer lines that fit whole (their chests stay on screen); otherwise one may
     // run past the outer edge (it's off-screen there), never into the text.
-    const first = choose(room, height, true) ?? choose(room + OUTER_SLACK, height, true);
+    const first = choose(room, height, true) ?? (narrow ? null : choose(room + OUTER_SLACK, height, true));
     if (!first) break;
     const colW = first.variants[0].w;
     const x0 = fromRight ? cursor - colW : cursor;

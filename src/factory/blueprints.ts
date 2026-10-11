@@ -65,6 +65,43 @@ export const BLUEPRINTS: Blueprint[] = [
     ],
   },
   {
+    name: 'zawijas-paliwo',
+    phoneOnly: true,
+    rows: [
+      'MM>>v........',
+      'MM..>eFFe>>>v',
+      '......FF....v',
+      '....C.......v',
+      '...Cw<wAAAw<<',
+      'TT=====AAA...',
+      'TT.....AAA...',
+    ],
+  },
+  {
+    // Short and low, so the strips cut by the top and bottom screen edge vary too.
+    name: 'krotka',
+    phoneOnly: true,
+    rows: [
+      'MM.......C.',
+      'MM>eFFe>>eC',
+      '....FF.....',
+    ],
+  },
+  {
+    // Two drill + furnace pairs whose plate belts merge before the assembler.
+    name: 'dwa-piece',
+    phoneOnly: true,
+    rows: [
+      'MM>eFFe>>>>v',
+      'MM..FF.....v',
+      'MM>eFFe>>>>v',
+      'MM..FF.....v',
+      '....C..AAA.v',
+      '...Cw<wAAAw<',
+      '.......AAA..',
+    ],
+  },
+  {
     name: 'mini-paliwo',
     rows: [
       'MM>>v.......C.',
