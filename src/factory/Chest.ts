@@ -1,5 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
-import { COLORS, SIM, STROKE } from '../config';
+import { AGV, COLORS, SIM, STROKE } from '../config';
 import { blackFill, line } from './draw';
 import type { Item, ItemKind, ItemPool } from './Item';
 import type { DropPort } from './ports';
@@ -24,6 +24,9 @@ export class Chest implements DropPort {
   serviced = false;
   /** What this chest has been receiving (sets how much fits in). */
   private kind: ItemKind = 'gear';
+  /** Off-screen chest: no AGV lane, it is emptied out of sight once full. */
+  hidden = false;
+  private swapTimer = 0;
   count = 0;
   state: ChestState = 'present';
 
@@ -78,6 +81,21 @@ export class Chest implements DropPort {
     this.pool.release(item);
     this.count++;
     this.flash = 1;
+  }
+
+  /** Stands in for the AGV swap of a chest nobody can see, so its pair keeps working. */
+  update(dt: number) {
+    if (!this.hidden) return;
+    if (this.state === 'away') {
+      this.swapTimer -= dt;
+      if (this.swapTimer <= 0) {
+        this.count = 0;
+        this.state = 'present';
+      }
+    } else if (this.full) {
+      this.state = 'away';
+      this.swapTimer = AGV.hiddenSwapTime;
+    }
   }
 
   render(dt: number) {
