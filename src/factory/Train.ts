@@ -341,8 +341,8 @@ export class Train {
       g.moveTo(x, -W / 2 + T * 0.3).lineTo(x, W / 2 - T * 0.3);
     }
     g.stroke(line(0.4, 1));
-    g.rect(x0 + T * 2.15, -W / 2 + T * 0.3, T * 1.2, W - T * 0.6).stroke(line(STROKE.soft, 1));
-    g.circle(x0 + T * 2.75, 0, T * 0.22).stroke(line(STROKE.soft, 1));
+    g.rect(x0 + T * 1.85, -W / 2 + T * 0.3, T * 1.2, W - T * 0.6).stroke(line(STROKE.soft, 1));
+    g.circle(x0 + T * 2.45, 0, T * 0.22).stroke(line(STROKE.soft, 1));
     // couplers
     g.moveTo(x0, 0).lineTo(x0 - T * 0.2, 0).stroke(line(STROKE.normal));
     c.addChild(g);
