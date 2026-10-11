@@ -306,7 +306,10 @@ function planAgvRoutes(layout: LayoutData): AgvRouteDef[] {
   layout.pipes.forEach((p) => p.tiles.forEach((t) => block(t.x, t.y)));
   layout.inserters.forEach((i) => block(i.x, i.y));
   for (let y = content.y; y < content.y + content.h; y++) for (let x = content.x; x < content.x + content.w; x++) block(x, y);
-  for (let y = station.platformRow - 1; y <= station.platformRow + 4; y++) for (let x = x0; x < x0 + w; x++) block(x, y);
+  // The track and its spare row, across the whole width. The rows above it are free
+  // at the sides (the platform and crane stand inside `content`), so lines that end
+  // there still get their lane.
+  for (let y = station.platformRow + 2; y <= station.platformRow + 4; y++) for (let x = x0; x < x0 + w; x++) block(x, y);
 
   const offScreen = (x: number, y: number) => x < view.x || y < view.y || x >= view.x + view.w || y >= view.y + view.h;
   const used = new Float32Array(w * h);

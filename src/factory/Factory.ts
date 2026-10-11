@@ -163,6 +163,13 @@ export class Factory {
       // Start part-full, so the swaps are spread out in time.
       chest.count = Math.floor(rng() * SIM.chestCapacity.gear * 0.9);
     }
+    // Chests outside the screen get no lane (nobody sees them); they empty themselves.
+    const view = layout.view;
+    for (const chest of this.chests) {
+      if (chest.x >= view.x && chest.y >= view.y && chest.x < view.x + view.w && chest.y < view.y + view.h) continue;
+      chest.serviced = true;
+      chest.hidden = true;
+    }
     // A pair with a chest no AGV can reach stays as before: both never fill up.
     for (const ins of this.machines) {
       if (!(ins instanceof Inserter)) continue;
@@ -235,6 +242,7 @@ export class Factory {
     for (const m of this.machines) m.update(dt);
     for (const b of this.belts) b.update(dt);
     for (const p of this.pipes) p.update(dt);
+    for (const c of this.chests) c.update(dt);
     this.fleet.update(dt);
   }
 

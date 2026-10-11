@@ -61,6 +61,8 @@ export const AGV = {
   /** Time off-screen before an empty chest comes back (s). */
   awayMin: 1,
   awayMax: 2.2,
+  /** A full chest outside the screen is swapped unseen; about as long as a visible swap takes (s). */
+  hiddenSwapTime: 4,
   /** Keep this distance (tiles) to the AGV ahead; give up waiting after `maxWait` s. */
   followGap: 1.05,
   maxWait: 2,
