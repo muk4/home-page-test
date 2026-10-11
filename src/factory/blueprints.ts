@@ -7,6 +7,11 @@ import type { Blueprint } from './blueprint';
  * and beside it, so it can keep packing while an AGV swaps the full one.
  * The layout packs the lines into the free space around the text and flips
  * them for variety.
+ *
+ * Ore is picked in belt order, so the first furnace takes whatever arrives:
+ * one drill (0.8 ore/s) feeds a single furnace (1 ore/s) and leaves any
+ * further furnace on the same belt idle. The multi-furnace lines therefore
+ * get extra drills below the ore belt.
  */
 export const BLUEPRINTS: Blueprint[] = [
   {
@@ -64,6 +69,8 @@ export const BLUEPRINTS: Blueprint[] = [
       '...FF.FF.....>>>eAAAe>eC',
       'MM.n..n.................',
       'MM>>>>>>................',
+      '....MM..................',
+      '....MM..................',
     ],
   },
   {
@@ -75,7 +82,8 @@ export const BLUEPRINTS: Blueprint[] = [
       '...FF.FF.FF.....>>>>eAAAe>>eC',
       '...n..n..n............=......',
       'MM>>>>>>>>>...TT=======......',
-      'MM............TT.............',
+      'MM..MM.MM.....TT.............',
+      '....MM.MM....................',
     ],
   },
 ];
