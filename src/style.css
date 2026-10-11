@@ -644,12 +644,6 @@ h1 {
     line-height: 1.55;
   }
 
-  /*
-   * The text wraps to many lines here, so the percentage insets above make the
-   * glow tall enough to dim the lines above and below the calm zone. Tile
-   * units keep it inside: the layout leaves at least 2 tiles free above the
-   * text and 6 below it.
-   */
   .intro::before {
     inset: calc(var(--tile) * -1.5) -22% calc(var(--tile) * -4);
   }
