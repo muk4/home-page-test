@@ -41,6 +41,7 @@ export const BLUEPRINTS: Blueprint[] = [
   {
     // Narrow lines that fold back on themselves: they fit a phone screen whole.
     name: 'zawijas',
+    phoneOnly: true,
     rows: [
       'MM>>v........',
       'MM..>eFFe>>>v',
@@ -53,6 +54,7 @@ export const BLUEPRINTS: Blueprint[] = [
   },
   {
     name: 'zawijas-mini',
+    phoneOnly: true,
     rows: [
       'MM>>v........',
       'MM..>eFFe>>>v',

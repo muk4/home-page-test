@@ -18,6 +18,8 @@ import type { BeltDef, DirTile, InserterDef, MachineDef, MachineType, PipeDef } 
 export interface Blueprint {
   name: string;
   rows: string[];
+  /** Only used on phone-sized screens (narrow, tall lines that fit whole). */
+  phoneOnly?: boolean;
 }
 
 export interface ParsedBlueprint {

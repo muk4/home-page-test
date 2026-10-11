@@ -27,7 +27,7 @@ const OVERFLOW = 2;
 /** A line may end this many tiles past the outer (off-screen) edge of its region. */
 const OUTER_SLACK = 6;
 
-/** Bands narrower than this (tiles) are phone-sized: lines should fit whole. */
+/** Grids narrower than this (tiles, overflow included) are phone-sized: lines should fit whole. */
 const NARROW_REGION = 28;
 
 type Anchor = 'top' | 'bottom' | 'left' | 'right';
@@ -40,9 +40,10 @@ interface Region extends TileRect {
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 
 /** Parsed blueprints, grouped by height, with every mirror variant. */
-function catalogue() {
+function catalogue(phone: boolean) {
   const byHeight = new Map<number, { name: string; variants: ParsedBlueprint[] }[]>();
   for (const bp of BLUEPRINTS) {
+    if (bp.phoneOnly && !phone) continue;
     const variants = [bp.rows, flipH(bp.rows), flipV(bp.rows), flipV(flipH(bp.rows))].map(parseBlueprint);
     const h = variants[0].h;
     if (!byHeight.has(h)) byHeight.set(h, []);
@@ -51,13 +52,12 @@ function catalogue() {
   return byHeight;
 }
 
-let cachedCatalogue: ReturnType<typeof catalogue> | null = null;
+const cachedCatalogues: Partial<Record<'phone' | 'wide', ReturnType<typeof catalogue>>> = {};
 
 export function computeLayout(input: LayoutInput): LayoutData {
   const { width, height } = input;
   const T = input.tile;
   const rng = mulberry32(Math.round(width) * 7919 + Math.round(height) * 104729);
-  const cat = (cachedCatalogue ??= catalogue());
 
   // Anchor the grid on the station: container centred on a tile, platform on a row.
   const stationCx = (input.station.left + input.station.right) / 2;
@@ -68,6 +68,9 @@ export function computeLayout(input: LayoutInput): LayoutData {
 
   const cols = Math.ceil((width - originX) / T);
   const rows = Math.ceil((height - originY) / T);
+  // Phone-sized: lines are chosen to fit the screen whole (wider screens are unchanged).
+  const phone = cols + OVERFLOW * 2 < NARROW_REGION;
+  const cat = (cachedCatalogues[phone ? 'phone' : 'wide'] ??= catalogue(phone));
   const view: TileRect = { x: 0, y: 0, w: cols, h: rows };
   const bounds: TileRect = { x: -OVERFLOW, y: -OVERFLOW, w: cols + OVERFLOW * 2, h: rows + OVERFLOW * 2 };
 
@@ -129,7 +132,7 @@ export function computeLayout(input: LayoutInput): LayoutData {
     const vertical = region.anchor === 'top' || region.anchor === 'bottom';
     // Only shelf heights that have at least one line narrow enough for this region.
     // On a phone only lines that fit the screen whole are used (the first and last column may be half cut).
-    const maxW = vertical && region.w < NARROW_REGION ? view.w - 2 : Infinity;
+    const maxW = vertical && phone ? view.w - 2 : Infinity;
     const heights = allHeights.filter((h) => cat.get(h)!.some((o) => o.variants[0].w <= Math.min(maxW, region.w + OUTER_SLACK)));
     // Shelves are stacked away from the text: the lines closest to it are always complete.
     // Full shelves go into the visible rows first; one more may be cut by the screen edge.
@@ -150,7 +153,7 @@ export function computeLayout(input: LayoutInput): LayoutData {
         .filter(([bh]) => bh <= h)
         .flatMap(([, list]) => list)
         .filter((o) => o.variants[0].w <= maxW);
-      packShelf(layout, options, region, shelfY, h, rng, vertical, shelfIndex++);
+      packShelf(layout, options, region, shelfY, h, rng, vertical, shelfIndex++, phone);
       used += h + 1;
       visible -= h + 1;
     }
@@ -177,12 +180,13 @@ function packShelf(
   rng: () => number,
   fullWidth: boolean,
   shelfIndex: number,
+  phone: boolean,
 ) {
   const fromRight = region.anchor === 'right';
   const stackUp = region.anchor === 'bottom';
   // Wide bands start slightly off-screen at a random offset, so rows don't line up.
   // On a phone that would cut every line: there they start at the screen edge.
-  const narrow = fullWidth && region.w < NARROW_REGION;
+  const narrow = fullWidth && phone;
   let cursor = narrow
     ? 1
     : fullWidth
