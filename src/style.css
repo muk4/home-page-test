@@ -644,6 +644,10 @@ h1 {
     line-height: 1.55;
   }
 
+  .intro::before {
+    inset: calc(var(--tile) * -1.5) -22% calc(var(--tile) * -4);
+  }
+
 }
 
 @media (max-height: 560px) {
