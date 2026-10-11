@@ -208,11 +208,13 @@ function packShelf(
     const fit = options.filter((o) => o.variants[0].w <= maxW && o.variants[0].h <= maxH);
     if (!fit.length) return null;
     const score = (o: Option) => o.variants[0].w * (preferTall ? o.variants[0].h : 1);
-    const best = Math.max(...fit.map(score));
-    const good = fit.filter((o) => score(o) >= best * 0.6);
+    // Lines not on screen yet come first (phones only; `used` is null elsewhere).
+    const unused = used ? fit.filter((o) => !used.has(o.name)) : [];
+    const candidates = unused.length ? unused : fit;
+    const best = Math.max(...candidates.map(score));
+    const good = candidates.filter((o) => score(o) >= best * 0.6);
     const fresh = good.filter((o) => o.name !== last);
-    const unused = used ? fresh.filter((o) => !used.has(o.name)) : [];
-    const pool = unused.length ? unused : fresh.length ? fresh : good;
+    const pool = fresh.length ? fresh : good;
     const pick = pool[Math.floor(rng() * pool.length)];
     last = pick.name;
     used?.add(pick.name);
