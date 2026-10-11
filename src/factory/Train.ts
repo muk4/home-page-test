@@ -23,6 +23,8 @@ interface Car {
   /** Carries the contact container (HTML) or a plain one (drawn here). */
   load: 'contact' | 'plain' | null;
   loadView?: Graphics;
+  /** The locomotive's headlights. */
+  lights?: Graphics;
 }
 
 const LOCO = 5;
@@ -169,6 +171,7 @@ export class Train {
     if (this.phase !== 'pass') return;
     this.stopped = !this.stopped;
     if (this.train) this.train.alpha = this.stopped ? 0.55 : 1;
+    for (const car of this.cars) if (car.lights) car.lights.tint = this.stopped ? COLORS.off : COLORS.accent;
   }
 
   private next(phase: Phase) {
@@ -297,7 +300,7 @@ export class Train {
       const length = kind === 'loco' ? LOCO : FLAT;
       const car: Car = { kind, length, offset, view: new Container(), load: s === 'loco' ? null : s };
       car.view.position.x = (-offset - length / 2) * this.T;
-      if (kind === 'loco') this.drawLoco(car.view);
+      if (kind === 'loco') car.lights = this.drawLoco(car.view);
       else this.drawFlat(car.view, s === 'plain');
       train.addChild(car.view);
       this.cars.push(car);
@@ -318,7 +321,7 @@ export class Train {
     }
   }
 
-  private drawLoco(c: Container) {
+  private drawLoco(c: Container): Graphics {
     const T = this.T;
     const L = LOCO * T;
     const W = BODY * T;
@@ -342,9 +345,13 @@ export class Train {
     g.circle(x0 + T * 2.75, 0, T * 0.22).stroke(line(STROKE.soft, 1));
     // couplers
     g.moveTo(x0, 0).lineTo(x0 - T * 0.2, 0).stroke(line(STROKE.normal));
-    // headlights
-    g.circle(x1 - T * 0.12, -W / 2 + T * 0.45, T * 0.06).circle(x1 - T * 0.12, W / 2 - T * 0.45, T * 0.06).fill({ color: COLORS.accent });
     c.addChild(g);
+    // headlights: white, so they can be tinted (orange, red when the train is stopped)
+    const lights = new Graphics();
+    lights.circle(x1 - T * 0.12, -W / 2 + T * 0.45, T * 0.06).circle(x1 - T * 0.12, W / 2 - T * 0.45, T * 0.06).fill({ color: 0xffffff });
+    lights.tint = COLORS.accent;
+    c.addChild(lights);
+    return lights;
   }
 
   private drawFlat(c: Container, plain: boolean) {
