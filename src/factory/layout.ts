@@ -27,6 +27,9 @@ const OVERFLOW = 2;
 /** A line may end this many tiles past the outer (off-screen) edge of its region. */
 const OUTER_SLACK = 6;
 
+/** Bands narrower than this (tiles) are phone-sized: lines should fit whole. */
+const NARROW_REGION = 28;
+
 type Anchor = 'top' | 'bottom' | 'left' | 'right';
 
 interface Region extends TileRect {
@@ -125,7 +128,9 @@ export function computeLayout(input: LayoutInput): LayoutData {
     if (region.w < 8 || region.h < minHeight) continue;
     const vertical = region.anchor === 'top' || region.anchor === 'bottom';
     // Only shelf heights that have at least one line narrow enough for this region.
-    const heights = allHeights.filter((h) => cat.get(h)!.some((o) => o.variants[0].w <= region.w + OUTER_SLACK));
+    // On a phone only lines that fit the screen whole are used (the first and last column may be half cut).
+    const maxW = vertical && region.w < NARROW_REGION ? view.w - 2 : Infinity;
+    const heights = allHeights.filter((h) => cat.get(h)!.some((o) => o.variants[0].w <= Math.min(maxW, region.w + OUTER_SLACK)));
     // Shelves are stacked away from the text: the lines closest to it are always complete.
     // Full shelves go into the visible rows first; one more may be cut by the screen edge.
     const hidden = vertical ? OVERFLOW : 0;
@@ -141,7 +146,10 @@ export function computeLayout(input: LayoutInput): LayoutData {
       // Mostly the tallest shelf that fits, sometimes a lower one for variety.
       const h = fitting.length > 1 && rng() < 0.3 ? fitting[1] : fitting[0];
       const shelfY = region.anchor === 'bottom' ? region.y + region.h - used - h : region.y + used;
-      const options = [...cat.entries()].filter(([bh]) => bh <= h).flatMap(([, list]) => list);
+      const options = [...cat.entries()]
+        .filter(([bh]) => bh <= h)
+        .flatMap(([, list]) => list)
+        .filter((o) => o.variants[0].w <= maxW);
       packShelf(layout, options, region, shelfY, h, rng, vertical, shelfIndex++);
       used += h + 1;
       visible -= h + 1;
@@ -173,7 +181,15 @@ function packShelf(
   const fromRight = region.anchor === 'right';
   const stackUp = region.anchor === 'bottom';
   // Wide bands start slightly off-screen at a random offset, so rows don't line up.
-  let cursor = fullWidth ? region.x - Math.floor(rng() * 4) - (shelfIndex % 2) * 3 : fromRight ? region.x + region.w : region.x;
+  // On a phone that would cut every line: there they start at the screen edge.
+  const narrow = fullWidth && region.w < NARROW_REGION;
+  let cursor = narrow
+    ? 1
+    : fullWidth
+      ? region.x - Math.floor(rng() * 4) - (shelfIndex % 2) * 3
+      : fromRight
+        ? region.x + region.w
+        : region.x;
   const limit = fromRight ? region.x : region.x + region.w;
   const minH = Math.min(...options.map((o) => o.variants[0].h));
   let last = '';
