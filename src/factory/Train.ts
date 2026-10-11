@@ -1,4 +1,4 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Rectangle } from 'pixi.js';
 import { COLORS, STROKE, TRAIN } from '../config';
 import type { Cargo } from '../ui/Cargo';
 import type { Crane } from '../ui/Crane';
@@ -23,6 +23,8 @@ interface Car {
   /** Carries the contact container (HTML) or a plain one (drawn here). */
   load: 'contact' | 'plain' | null;
   loadView?: Graphics;
+  /** The locomotive's headlights. */
+  lights?: Graphics;
 }
 
 const LOCO = 5;
@@ -58,6 +60,8 @@ export class Train {
   private grip = 0;
   private lift = 0;
   private passTimer: number;
+  /** A freight train the visitor stopped with a tap; it waits for another tap. */
+  private stopped = false;
 
   constructor(layout: LayoutData, layer: Container, cargo: Cargo, crane: Crane, story: Story) {
     this.layout = layout;
@@ -153,12 +157,21 @@ export class Train {
       case 'depart':
       case 'pass':
         if (this.story.phase === 'delivering') this.parkCrane(dt);
-        this.speed = Math.min(TRAIN.speed, this.speed + TRAIN.accel * dt);
+        if (this.stopped) this.speed = Math.max(0, this.speed - TRAIN.decel * dt);
+        else this.speed = Math.min(TRAIN.speed, this.speed + TRAIN.accel * dt);
         this.head += this.speed * dt;
         if (this.head - this.length() > this.layout.bounds.x + this.layout.bounds.w + 1) this.despawn();
         break;
     }
     if (this.phase) this.render();
+  }
+
+  /** Tap on a freight train: brake to a halt, or set off again. */
+  private toggleStop() {
+    if (this.phase !== 'pass') return;
+    this.stopped = !this.stopped;
+    if (this.train) this.train.alpha = this.stopped ? 0.55 : 1;
+    for (const car of this.cars) if (car.lights) car.lights.tint = this.stopped ? COLORS.off : COLORS.accent;
   }
 
   private next(phase: Phase) {
@@ -246,6 +259,7 @@ export class Train {
     const wagons = 1 + Math.floor(Math.random() * 3);
     const loads: ('plain' | null)[] = Array.from({ length: wagons }, () => (Math.random() < 0.8 ? 'plain' : null));
     this.build(['loco', ...loads], Math.random() < 0.5 ? 1 : -1);
+    this.makeStoppable();
     this.head = this.layout.bounds.x - 0.5;
     this.speed = TRAIN.speed * 0.85;
     this.next('pass');
@@ -263,6 +277,7 @@ export class Train {
     this.train = null;
     this.cars = [];
     this.phase = null;
+    this.stopped = false;
     this.passTimer = rand(TRAIN.passDelayMin, TRAIN.passDelayMax);
   }
 
@@ -285,7 +300,7 @@ export class Train {
       const length = kind === 'loco' ? LOCO : FLAT;
       const car: Car = { kind, length, offset, view: new Container(), load: s === 'loco' ? null : s };
       car.view.position.x = (-offset - length / 2) * this.T;
-      if (kind === 'loco') this.drawLoco(car.view);
+      if (kind === 'loco') car.lights = this.drawLoco(car.view);
       else this.drawFlat(car.view, s === 'plain');
       train.addChild(car.view);
       this.cars.push(car);
@@ -295,7 +310,18 @@ export class Train {
     this.train = train;
   }
 
-  private drawLoco(c: Container) {
+  /** Cars of a freight train react to taps (the contact train stays untouchable). */
+  private makeStoppable() {
+    const T = this.T;
+    for (const car of this.cars) {
+      car.view.eventMode = 'static';
+      car.view.cursor = 'pointer';
+      car.view.hitArea = new Rectangle((-car.length / 2) * T, (-BODY / 2) * T, car.length * T, BODY * T);
+      car.view.on('pointertap', () => this.toggleStop());
+    }
+  }
+
+  private drawLoco(c: Container): Graphics {
     const T = this.T;
     const L = LOCO * T;
     const W = BODY * T;
@@ -315,13 +341,17 @@ export class Train {
       g.moveTo(x, -W / 2 + T * 0.3).lineTo(x, W / 2 - T * 0.3);
     }
     g.stroke(line(0.4, 1));
-    g.rect(x0 + T * 2.15, -W / 2 + T * 0.3, T * 1.2, W - T * 0.6).stroke(line(STROKE.soft, 1));
-    g.circle(x0 + T * 2.75, 0, T * 0.22).stroke(line(STROKE.soft, 1));
+    g.rect(x0 + T * 1.85, -W / 2 + T * 0.3, T * 1.2, W - T * 0.6).stroke(line(STROKE.soft, 1));
+    g.circle(x0 + T * 2.45, 0, T * 0.22).stroke(line(STROKE.soft, 1));
     // couplers
     g.moveTo(x0, 0).lineTo(x0 - T * 0.2, 0).stroke(line(STROKE.normal));
-    // headlights
-    g.circle(x1 - T * 0.12, -W / 2 + T * 0.45, T * 0.06).circle(x1 - T * 0.12, W / 2 - T * 0.45, T * 0.06).fill({ color: COLORS.accent });
     c.addChild(g);
+    // headlights: white, so they can be tinted (orange, red when the train is stopped)
+    const lights = new Graphics();
+    lights.circle(x1 - T * 0.12, -W / 2 + T * 0.45, T * 0.06).circle(x1 - T * 0.12, W / 2 - T * 0.45, T * 0.06).fill({ color: 0xffffff });
+    lights.tint = COLORS.accent;
+    c.addChild(lights);
+    return lights;
   }
 
   private drawFlat(c: Container, plain: boolean) {

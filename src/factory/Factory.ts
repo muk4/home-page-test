@@ -59,7 +59,8 @@ export class Factory {
       passive.eventMode = 'none';
       passive.interactiveChildren = false;
     }
-    this.trainLayer.eventMode = 'none';
+    // Passive: the layer itself is not hit, but freight cars inside it can be tapped.
+    this.trainLayer.eventMode = 'passive';
     this.root.addChild(drawGrid(layout.bounds, T), ground, chevronLayer, flowLayer, itemLayer, agvLayer, machineLayer, inserterLayer, this.trainLayer);
 
     const chevron = chevronContext(T);
