@@ -662,7 +662,8 @@ h1 {
   }
 
   .station {
-    margin-top: calc(var(--tile) * 0.5);
+    /* The parked crane reaches ~0.55 tile above the station: keep it clear of the text. */
+    margin-top: calc(var(--tile) * 0.9);
   }
 }
 

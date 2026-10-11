@@ -11,7 +11,8 @@ import type { Blueprint } from './blueprint';
  * Ore is picked in belt order, so the first furnace takes whatever arrives:
  * one drill (0.8 ore/s) feeds a single furnace (1 ore/s) and leaves any
  * further furnace on the same belt idle. The multi-furnace lines therefore
- * get extra drills below the ore belt.
+ * get extra drills stacked beside the head of the ore belt; they keep the
+ * lines' original footprint, so the packing (and the look) stays the same.
  */
 export const BLUEPRINTS: Blueprint[] = [
   {
@@ -36,6 +37,68 @@ export const BLUEPRINTS: Blueprint[] = [
       'MM>>>>v...........AAA........',
       'MM....v....FF.....AAA......C.',
       '......>>>>eFFe>>>eAAAe>>>>>eC',
+    ],
+  },
+  {
+    // Narrow lines that fold back on themselves: they fit a phone screen whole.
+    name: 'zawijas',
+    phoneOnly: true,
+    rows: [
+      'MM>>v........',
+      'MM..>eFFe>>>v',
+      '......FF....v',
+      '....C.......v',
+      '...Cw<wAAAw<<',
+      '.......AAA...',
+      '.......AAA...',
+    ],
+  },
+  {
+    name: 'zawijas-mini',
+    phoneOnly: true,
+    rows: [
+      'MM>>v........',
+      'MM..>eFFe>>>v',
+      '......FF....v',
+      '....C.......v',
+      '...Cw<<<<<<<<',
+    ],
+  },
+  {
+    name: 'zawijas-paliwo',
+    phoneOnly: true,
+    rows: [
+      'MM>>v........',
+      'MM..>eFFe>>>v',
+      '......FF....v',
+      '....C.......v',
+      '...Cw<wAAAw<<',
+      'TT=====AAA...',
+      'TT.....AAA...',
+    ],
+  },
+  {
+    // Short and low, so the strips cut by the top and bottom screen edge vary too.
+    name: 'krotka',
+    phoneOnly: true,
+    rows: [
+      'MM.......C.',
+      'MM>eFFe>>eC',
+      '....FF.....',
+    ],
+  },
+  {
+    // Two drill + furnace pairs whose plate belts merge before the assembler.
+    name: 'dwa-piece',
+    phoneOnly: true,
+    rows: [
+      'MM>eFFe>>>>v',
+      'MM..FF.....v',
+      'MM>eFFe>>>>v',
+      'MM..FF.....v',
+      '....C..AAA.v',
+      '...Cw<wAAAw<',
+      '.......AAA..',
     ],
   },
   {
@@ -65,25 +128,22 @@ export const BLUEPRINTS: Blueprint[] = [
     rows: [
       '....>>>>>>>>>v..........',
       '....n..n.....v...AAA....',
-      '...FF.FF.....v...AAA..C.',
-      '...FF.FF.....>>>eAAAe>eC',
-      'MM.n..n.................',
+      'MM.FF.FF.....v...AAA..C.',
+      'MMvFF.FF.....>>>eAAAe>eC',
+      'MMvn..n.................',
       'MM>>>>>>................',
-      '....MM..................',
-      '....MM..................',
     ],
   },
   {
     name: 'huta',
     rows: [
       '....>>>>>>>>>>>>v............',
-      '....n..n..n.....v....AAA.....',
-      '...FF.FF.FF.....v....AAA...C.',
-      '...FF.FF.FF.....>>>>eAAAe>>eC',
-      '...n..n..n............=......',
+      'MM..n..n..n.....v....AAA.....',
+      'MMvFF.FF.FF.....v....AAA...C.',
+      'MMvFF.FF.FF.....>>>>eAAAe>>eC',
+      'MMvn..n..n............=......',
       'MM>>>>>>>>>...TT=======......',
-      'MM..MM.MM.....TT.............',
-      '....MM.MM....................',
+      'MM............TT.............',
     ],
   },
 ];
