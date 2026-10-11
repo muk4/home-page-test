@@ -19,13 +19,6 @@ function measureRole() {
   if (text && role) role.style.setProperty('--chars', String([...(text.textContent ?? '').trim()].length));
 }
 
-/** `?prewarm=N` (seconds) overrides the default warm-up, for comparing how the first frame looks. */
-function prewarmSeconds() {
-  const raw = new URLSearchParams(location.search).get('prewarm');
-  const value = raw === null || raw.trim() === '' ? NaN : Number(raw);
-  return Number.isFinite(value) ? Math.min(Math.max(value, 0), 120) : SIM.prewarm;
-}
-
 async function boot() {
   measureRole();
   const host = document.getElementById('factory')!;
@@ -89,7 +82,7 @@ async function boot() {
     factory?.destroy();
     factory = new Factory(layout, hooks);
     app.stage.addChild(factory.root);
-    factory.prewarm(prewarmSeconds());
+    factory.prewarm(SIM.prewarm);
     train = new Train(layout, factory.trainLayer, cargo, crane, story);
     tooltip.hide();
   };
